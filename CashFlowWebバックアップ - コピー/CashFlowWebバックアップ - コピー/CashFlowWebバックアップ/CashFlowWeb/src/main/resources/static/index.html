@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html class="dark" lang="ja">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>FutureFlow ダッシュボード</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .modal { backdrop-filter: blur(5px); }
+    </style>
+    <script>
+        tailwind.config = { darkMode: "class", theme: { extend: { colors: { "primary": "#258cf4", "background-dark": "#101922" }, fontFamily: { "display": ["Inter", "sans-serif"] }, } } }
+        Chart.defaults.color = '#9ca3af';
+        Chart.defaults.borderColor = '#374151';
+    </script>
+</head>
+
+<body class="bg-background-dark text-[#E0E0E0]">
+<div class="flex min-h-screen">
+    
+    <aside class="flex w-64 flex-col border-r border-white/10 bg-[#111418] p-4">
+        <div class="flex flex-col gap-4">
+            <div class="flex items-center gap-3 p-2">
+                <span class="material-symbols-outlined text-primary" style="font-size:32px;">monitoring</span>
+                <div class="flex flex-col"><h1 class="text-base font-medium leading-normal text-white">FutureFlow</h1><p class="text-sm font-normal leading-normal text-[#9cabba]">ようこそ</p></div>
+            </div>
+            <nav class="mt-4 flex flex-col gap-2">
+                <a class="flex items-center gap-3 rounded-lg bg-primary/20 px-3 py-2 text-primary" href="/index.html">
+                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span><p class="text-sm font-medium leading-normal">ダッシュボード</p>
+                </a>
+                <a class="flex items-center gap-3 rounded-lg px-3 py-2 text-white transition-colors hover:bg-white/10" href="/goals.html">
+                    <span class="material-symbols-outlined">flag</span><p class="text-sm font-medium leading-normal">目標管理</p>
+                </a>
+                <a class="flex items-center gap-3 rounded-lg px-3 py-2 text-white transition-colors hover:bg-white/10" href="/portfolio.html">
+                    <span class="material-symbols-outlined">trending_up</span><p class="text-sm font-medium leading-normal">ポートフォリオ</p>
+                </a>
+                <a class="flex items-center gap-3 rounded-lg px-3 py-2 text-white transition-colors hover:bg-white/10" href="/budgets.html">
+                    <span class="material-symbols-outlined">savings</span><p class="text-sm font-medium leading-normal">予算管理</p>
+                </a>
+                <a class="flex items-center gap-3 rounded-lg px-3 py-2 text-white transition-colors hover:bg-white/10" href="/categories.html">
+                    <span class="material-symbols-outlined">label</span><p class="text-sm font-medium leading-normal">カテゴリ管理</p>
+                </a>
+            </nav>
+        </div>
+        <form action="/logout" method="POST" class="mt-auto pt-4 border-t border-white/10">
+            <button type="submit" class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-gray-400 transition-colors hover:bg-red-500/20 hover:text-red-400">
+                <span class="material-symbols-outlined">logout</span>
+                <p class="text-sm font-medium leading-normal">ログアウト</p>
+            </button>
+       </form>
+    </aside>
+    
+    <main class="flex-1 overflow-y-auto p-8">
+        <div class="mx-auto max-w-7xl">
+            <header class="mb-6 flex justify-between items-center">
+                <p class="text-4xl font-black leading-tight tracking-[-0.033em] text-white">ダッシュボード</p>
+                <button onclick="openModal()" class="flex h-10 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-primary px-4 text-sm font-bold text-white transition-opacity hover:opacity-90"><span class="material-symbols-outlined">add</span><span>取引を追加</span></button>
+            </header>
+
+            <div class="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="flex flex-col gap-2 rounded-xl border border-[#314668] bg-[#1a2333] p-6"><p class="text-base font-medium text-gray-400">今月の総支出</p><p id="total-spending" class="text-3xl font-bold tracking-tight text-white">¥0</p></div>
+                <div class="flex flex-col gap-2 rounded-xl border border-[#314668] bg-[#1a2333] p-6"><p class="text-base font-medium text-gray-400">今月の純利益</p><p id="net-income" class="text-3xl font-bold tracking-tight text-white">¥0</p></div>
+                <div class="flex flex-col gap-2 rounded-xl border border-[#314668] bg-[#1a2333] p-6"><p class="text-base font-medium text-gray-400">現在の総資産</p><p id="total-balance" class="text-3xl font-bold tracking-tight text-white">¥0</p></div>
+            </div>
+
+            <div class="mb-8">
+                <h3 class="mb-4 text-lg font-semibold text-white">進行中の目標</h3>
+                <div id="goals-container" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                </div>
+            </div>
+
+            <div class="mb-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
+                <div class="flex flex-col gap-4 rounded-xl border border-[#314668] bg-[#1a2333] p-6"><p class="text-lg font-semibold text-white">支出の内訳</p><div class="relative flex min-h-[250px] items-center justify-center"><canvas id="expense-pie-chart"></canvas></div><div id="pie-chart-legend" class="grid grid-cols-2 gap-x-6 gap-y-3"></div></div>
+                <div class="flex flex-col gap-4 rounded-xl border border-[#314668] bg-[#1a2333] p-6"><p class="text-lg font-semibold text-white">月ごとの推移</p><div class="relative min-h-[300px]"><canvas id="monthly-bar-chart"></canvas></div></div>
+            </div>
+
+            <div class="mb-8 rounded-xl border border-[#314668] bg-[#1a2333] p-6 shadow-lg">
+                <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                            <span class="material-symbols-outlined text-purple-400">auto_awesome</span>
+                            AI 資産シミュレーション
+                        </h2>
+                        <p class="text-sm text-gray-400">固定収支と臨時支出のパターンを分析し、より現実的な未来の資産推移を予測します。</p>
+                    </div>
+                    <button onclick="runAiPrediction()" class="flex items-center justify-center gap-2 rounded-lg bg-purple-600/20 px-6 py-2 font-semibold text-purple-300 border border-purple-600/50 transition hover:bg-purple-600/30">
+                        <span class="material-symbols-outlined">play_circle</span>
+                        シミュレーション実行
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
+                    <div class="lg:col-span-3 bg-[#111418] rounded-lg p-4 border border-white/5">
+                        <div class="h-64 w-full">
+                            <canvas id="predictionChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="flex flex-col justify-center rounded-lg bg-[#111418] p-5 border border-white/5 relative overflow-hidden">
+                         <div class="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-purple-500/10 blur-xl"></div>
+                        <h3 class="mb-3 font-bold text-purple-400 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-sm">psychology</span>
+                            AI Analysis
+                        </h3>
+                        <div id="ai-feedback" class="text-sm text-gray-300 leading-relaxed min-h-[4rem] z-10">
+                            ボタンを押してシミュレーションを開始してください。<br>
+                            過去の臨時支出（旅行など）の発生確率も考慮します。
+                        </div>
+                        <div class="mt-4 border-t border-gray-700 pt-4 z-10">
+                            <p class="text-xs text-gray-500 uppercase tracking-wider">1年後の着地予想</p>
+                            <p id="predicted-amount" class="text-2xl font-bold text-white mt-1">---</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="overflow-hidden rounded-xl border border-[#314668] bg-[#1a2333]">
+                <div class="flex items-center justify-between gap-4 p-6"><h3 class="text-lg font-semibold text-white">最近の取引履歴</h3></div>
+                <div class="overflow-x-auto"><table class="w-full text-left"><thead class="border-b border-t border-[#314668]"><tr><th class="px-6 py-3 text-xs font-medium uppercase tracking-wider text-gray-400">日付</th><th class="px-6 py-3 text-xs font-medium uppercase tracking-wider text-gray-400">カテゴリ</th><th class="px-6 py-3 text-xs font-medium uppercase tracking-wider text-gray-400">種類</th><th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-400">金額</th></tr></thead><tbody id="transaction-table-body" class="divide-y divide-[#223149]"></tbody></table></div>
+            </div>
+            
+        </div>
+    </main>
+</div>
+
+<div id="transaction-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4" style="backdrop-filter: blur(5px);">
+    <div class="w-full max-w-md rounded-xl border border-gray-700 bg-[#111418] p-6">
+        <div class="flex items-center justify-between"><h2 id="modal-title" class="flex items-center gap-3 text-lg font-bold text-white"></h2><button onclick="closeModal()" class="text-gray-400 hover:text-white"><span class="material-symbols-outlined">close</span></button></div>
+        <form id="transaction-form" class="mt-4 grid grid-cols-1 gap-4">
+            <input type="hidden" id="transaction-id">
+            <div><label class="mb-2 block text-sm font-medium text-gray-400" for="date">日付</label><input class="block w-full rounded-lg border-transparent bg-[#283039] text-white focus:border-primary focus:ring-primary sm:text-sm" id="date" type="date" required style="color-scheme: dark;"></div>
+            <div><label class="mb-2 block text-sm font-medium text-gray-400" for="type">種類</label><select class="block w-full rounded-lg border-transparent bg-[#283039] text-white focus:border-primary focus:ring-primary sm:text-sm" id="type" required><option value="EXPENSE">支出</option><option value="INCOME">収入</option></select></div>
+            <div><label class="mb-2 block text-sm font-medium text-gray-400" for="category">カテゴリ</label><select class="block w-full rounded-lg border-transparent bg-[#283039] text-white focus:border-primary focus:ring-primary sm:text-sm" id="category" required></select></div>
+            <div><label class="mb-2 block text-sm font-medium text-gray-400" for="amount">金額</label><input class="block w-full rounded-lg border-transparent bg-[#283039] text-white focus:border-primary focus:ring-primary sm:text-sm" id="amount" type="number" required></div>
+            
+            <div class="flex items-start gap-3 p-3 rounded bg-white/5 border border-white/10">
+                 <input type="checkbox" id="is-extraordinary" class="mt-1 h-4 w-4 rounded border-gray-600 bg-[#283039] text-primary focus:ring-primary">
+                 <div class="flex flex-col">
+                    <label for="is-extraordinary" class="text-sm font-medium text-white">臨時的な出費/収入</label>
+                    <span class="text-xs text-gray-400 mt-1">チェックを入れると、毎月の固定費計算（AI予測のベースライン）から除外されます。</span>
+                 </div>
+            </div>
+
+            <button class="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-white hover:bg-primary/90" type="submit"><span class="material-symbols-outlined">save</span>保存</button>
+        </form>
+    </div>
+</div>
+
+<div id="goal-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4" style="backdrop-filter: blur(5px);">
+    <div class="w-full max-w-md rounded-xl border border-gray-700 bg-[#111418] p-6">
+        <div class="flex items-center justify-between">
+            <h2 class="flex items-center gap-3 text-lg font-bold text-white"><span class="material-symbols-outlined">savings</span>貯金を追加</h2>
+            <button onclick="closeGoalModal()" class="text-gray-400 hover:text-white"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="mt-4">
+            <p class="mb-4 text-sm text-gray-400">目標: <span id="modal-goal-name" class="font-bold text-white"></span></p>
+            <div>
+                <label class="mb-2 block text-sm font-medium text-gray-400" for="modal-amount-input">追加する金額</label>
+                <input class="block w-full rounded-lg border-transparent bg-[#283039] text-white focus:border-primary focus:ring-primary sm:text-sm" id="modal-amount-input" type="number" placeholder="例: 5000" required>
+            </div>
+            <button onclick="handleAddSavings()" class="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-white hover:bg-primary/90" type="button">
+                <span class="material-symbols-outlined">save</span>保存
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let pieChart = null, barChart = null, predictionChartInstance = null;
+    const modal = document.getElementById('transaction-modal');
+    const form = document.getElementById('transaction-form');
+    
+    let selectedGoal = null; 
+    let goalCategoryId = null; 
+
+    document.addEventListener('DOMContentLoaded', () => {
+        populateCategories();
+        updateDashboard();
+        form.addEventListener('submit', handleFormSubmit);
+    });
+
+    function openModal() {
+        form.reset();
+        document.getElementById('modal-title').innerHTML = `<span class="material-symbols-outlined">add_circle</span> 新しい取引を追加`;
+        document.getElementById('transaction-id').value = '';
+        document.getElementById('date').value = new Date().toISOString().split('T')[0];
+        modal.classList.remove('hidden'); modal.classList.add('flex');
+    }
+
+    function closeModal() { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+
+    async function handleFormSubmit(event) {
+        event.preventDefault();
+        
+        const selectedCatId = parseInt(document.getElementById('category').value);
+        if (selectedCatId === goalCategoryId) {
+            alert("「貯金」カテゴリへの取引は、ダッシュボードの目標カードから直接追加してください。");
+            return;
+        }
+        
+        const data = { 
+            date: document.getElementById('date').value, 
+            type: document.getElementById('type').value, 
+            categoryId: selectedCatId,
+            amount: parseFloat(document.getElementById('amount').value), 
+            isFuture: false, 
+            // モーダルのチェックボックスIDを取得
+            isExtraordinary: document.getElementById('is-extraordinary').checked 
+        };
+        await fetch('/api/transactions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        closeModal();
+        updateDashboard();
+    }
+    
+    async function updateDashboard() {
+        const [balanceRes, summaryRes] = await Promise.all([
+            fetch('/api/transactions/balance'),
+            fetch('/api/transactions/summary') 
+        ]);
+        
+        const balance = await balanceRes.json();
+        document.getElementById('total-balance').textContent = `¥${Math.round(balance).toLocaleString()}`;
+        
+        const monthlyData = await summaryRes.json();
+        if (monthlyData.length > 0) {
+            const latestMonth = monthlyData[0];
+            const netIncome = latestMonth.totalIncome - latestMonth.totalExpense;
+            document.getElementById('total-spending').textContent = `¥${Math.round(latestMonth.totalExpense).toLocaleString()}`;
+            document.getElementById('net-income').textContent = `¥${Math.round(netIncome).toLocaleString()}`;
+        }
+        
+        fetchTransactions();
+        updatePieChart();
+        renderBarChart(monthlyData);
+        displayGoals();
+    }
+    
+    async function fetchTransactions() {
+        const response = await fetch('/api/transactions');
+        const transactions = await response.json();
+        const tableBody = document.getElementById('transaction-table-body');
+        tableBody.innerHTML = '';
+        
+        // 日付でソート
+        transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        transactions.slice(0, 5).forEach(tx => {
+            const row = document.createElement('tr');
+            const amountClass = tx.type === 'INCOME' ? 'text-green-400' : 'text-red-400';
+            const amountSign = tx.type === 'INCOME' ? '+' : '-';
+            // 臨時バッジの表示
+            const badge = tx.isExtraordinary 
+                ? `<span class="ml-2 rounded border border-purple-500/30 bg-purple-500/20 px-1.5 py-0.5 text-[10px] text-purple-400">臨時</span>` 
+                : '';
+
+            row.innerHTML = `<td class="px-6 py-4 text-sm text-gray-300">${tx.date}</td><td class="px-6 py-4 text-sm font-medium text-white">${tx.categoryName}</td><td><span class="flex items-center rounded-full bg-gray-700/50 px-2 py-1 text-xs font-medium text-gray-300 w-fit">${tx.type === 'EXPENSE' ? '支出' : '収入'} ${badge}</span></td><td class="px-6 py-4 text-right text-sm font-medium ${amountClass}">${amountSign}¥${tx.amount.toLocaleString()}</td>`;
+            tableBody.appendChild(row);
+        });
+    }
+
+    async function updatePieChart() {
+        const today = new Date();
+        const startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+        const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+        
+        const response = await fetch(`/api/transactions/summary/category?startDate=${startDate}&endDate=${endDate}&type=EXPENSE`);
+        const data = await response.json();
+        renderPieChart(data);
+    }
+
+    function renderPieChart(data) {
+        const ctx = document.getElementById('expense-pie-chart').getContext('2d');
+        if (pieChart) pieChart.destroy();
+        const chartColors = ['#4a90e2', '#9013fe', '#3c83f6', '#0bda5e', '#f5a623'];
+        pieChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: data.map(d => d.categoryName),
+                datasets: [{ data: data.map(d => d.totalAmount), backgroundColor: chartColors, borderColor: '#16212e', borderWidth: 4 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false } } }
+        });
+        
+        const legendContainer = document.getElementById('pie-chart-legend');
+        legendContainer.innerHTML = '';
+        let totalSpent = 0;
+        data.forEach((item, index) => {
+            totalSpent += item.totalAmount;
+            legendContainer.innerHTML += `<div class="flex items-center gap-3"><div class="size-3 rounded-full" style="background-color: ${chartColors[index % chartColors.length]}"></div><span class="text-sm text-gray-300">${item.categoryName}</span><span class="ml-auto text-sm font-medium text-white">¥${Math.round(item.totalAmount).toLocaleString()}</span></div>`;
+        });
+    }
+
+    function renderBarChart(monthlyData) {
+        const data = monthlyData.slice(0, 6).reverse();
+        const labels = data.map(d => d.month.substring(5) + '月');
+        const incomeData = data.map(d => d.totalIncome);
+        const expenseData = data.map(d => d.totalExpense);
+        const ctx = document.getElementById('monthly-bar-chart').getContext('2d');
+        if (barChart) barChart.destroy();
+        barChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: '収入', data: incomeData, backgroundColor: 'rgba(37, 140, 244, 0.5)', borderColor: '#258cf4', borderWidth: 1, borderRadius: 4 },
+                    { label: '支出', data: expenseData, backgroundColor: 'rgba(59, 71, 82, 0.5)', borderColor: '#3b4754', borderWidth: 1, borderRadius: 4 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: '#374151' } }, x: { grid: { display: false } } }, plugins: { legend: { align: 'end', labels: { usePointStyle: true, boxWidth: 8 } } } }
+        });
+    }
+
+    async function populateCategories() {
+        const response = await fetch('/api/categories');
+        const categories = await response.json();
+        const select = document.getElementById('category');
+        select.innerHTML = '';
+        
+        categories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = `${cat.name} (${cat.type === 'INCOME' ? '収入' : '支出'})`;
+            if (cat.name === "貯金" && cat.type === "EXPENSE") {
+                goalCategoryId = cat.id; 
+            } else {
+                select.appendChild(option); 
+            }
+        });
+    }
+
+    async function displayGoals() {
+        try {
+            const response = await fetch('/api/goals');
+            const goals = await response.json();
+            const container = document.getElementById('goals-container');
+            container.innerHTML = '';
+
+            if (goals.length === 0) {
+                container.innerHTML = `<p class="col-span-full text-gray-400">現在、設定されている目標はありません。</p>`;
+                return;
+            }
+
+            goals.forEach(goal => {
+                const progress = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
+                const goalCard = document.createElement('div');
+                goalCard.className = "flex flex-col gap-3 rounded-xl border border-[#314668] bg-[#1a2333] p-5 relative"; 
+
+                goalCard.innerHTML = `
+                    <div class="absolute inset-0 z-10 cursor-pointer rounded-xl transition-colors hover:border-primary border-2 border-transparent" 
+                         onclick='openGoalModal(${JSON.stringify(goal)})'>
+                    </div>
+                    <button onclick="handleDeleteGoal(event, ${goal.id})" 
+                        class="absolute top-3 right-3 z-20 p-1 rounded-full text-gray-500 hover:text-red-400 hover:bg-gray-700 transition-colors">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">delete</span>
+                    </button>
+                    <div class="relative z-0">
+                        <div class="flex items-center justify-between pr-8"> <p class="font-semibold text-white">${goal.name}</p>
+                            <span class="text-sm font-medium text-primary">${Math.round(progress)}%</span>
+                        </div>
+                        <div class="h-2.5 w-full rounded-full bg-gray-700 mt-3">
+                            <div class="bg-primary h-2.5 rounded-full" style="width: ${Math.min(progress, 100)}%"></div>
+                        </div>
+                        <div class="text-sm text-gray-400 mt-3">
+                            <span>¥${goal.currentAmount.toLocaleString()}</span> / <span>¥${goal.targetAmount.toLocaleString()}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(goalCard);
+            });
+        } catch (error) {
+            console.error("目標エラー:", error);
+        }
+    }
+
+    function openGoalModal(goal) {
+        selectedGoal = goal;
+        document.getElementById('modal-goal-name').textContent = goal.name;
+        document.getElementById('goal-modal').classList.remove('hidden');
+        document.getElementById('goal-modal').classList.add('flex');
+    }
+
+    function closeGoalModal() {
+        document.getElementById('goal-modal').classList.add('hidden');
+        document.getElementById('goal-modal').classList.remove('flex');
+        document.getElementById('modal-amount-input').value = '';
+        selectedGoal = null;
+    }
+
+    async function handleDeleteGoal(event, goalId) {
+        event.stopPropagation(); 
+        if (!confirm("この目標を削除しますか？")) return;
+        try {
+            const response = await fetch(`/api/goals/${goalId}`, { method: 'DELETE' });
+            if (response.ok) updateDashboard();
+        } catch (error) { console.error(error); }
+    }
+
+    async function handleAddSavings() {
+        if (!selectedGoal || !goalCategoryId) return;
+        const amountToAdd = parseFloat(document.getElementById('modal-amount-input').value);
+        if (isNaN(amountToAdd) || amountToAdd <= 0) return;
+
+        const transactionData = {
+            date: new Date().toISOString().split('T')[0],
+            amount: amountToAdd,
+            categoryId: goalCategoryId,
+            type: "EXPENSE",
+            isFuture: false,
+            isExtraordinary: true 
+        };
+        
+        try {
+            const txResponse = await fetch('/api/transactions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(transactionData) });
+            if (txResponse.ok) {
+                const updatedGoal = { ...selectedGoal, currentAmount: selectedGoal.currentAmount + amountToAdd };
+                if (updatedGoal.currentAmount > updatedGoal.targetAmount) updatedGoal.currentAmount = updatedGoal.targetAmount;
+                await fetch(`/api/goals/${updatedGoal.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedGoal) });
+                closeGoalModal();
+                updateDashboard();
+            }
+        } catch (error) { console.error(error); }
+    }
+
+    // -----------------------------------------------------
+    // ▼▼▼ AI 資産予測機能 (確率的シミュレーション) ▼▼▼
+    // -----------------------------------------------------
+    async function runAiPrediction() {
+        const feedbackEl = document.getElementById('ai-feedback');
+        const amountEl = document.getElementById('predicted-amount');
+        
+        const messages = ["固定収支の安定性を計算中...", "臨時支出の発生確率を分析中...", "複利効果とリスクを反映中...", "予測を生成しました"];
+
+        for(let i=0; i < messages.length -1; i++) {
+            feedbackEl.innerHTML = `<span class="animate-pulse text-purple-400">${messages[i]}</span>`;
+            await new Promise(r => setTimeout(r, 600));
+        }
+        
+        try {
+            // API呼び出し
+            const response = await fetch('/api/transactions/predict?monthsToPredict=12');
+            if (!response.ok) throw new Error('API Error');
+            const result = await response.json();
+            
+            feedbackEl.textContent = result.feedback;
+            const finalAmount = result.projectionPoints[result.projectionPoints.length - 1];
+            amountEl.textContent = '¥' + finalAmount.toLocaleString();
+            renderPredictionChart(result.projectionPoints);
+
+        } catch (error) {
+            console.error(error);
+            feedbackEl.textContent = 'データが不足しています。予測には過去の取引データが必要です。';
+        }
+    }
+
+    function renderPredictionChart(dataPoints) {
+        const ctx = document.getElementById('predictionChart').getContext('2d');
+        if (predictionChartInstance) predictionChartInstance.destroy();
+
+        const labels = ['現在'];
+        for(let i=1; i < dataPoints.length; i++) labels.push(i + 'ヶ月後');
+
+        // 紫色のグラデーション
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(168, 85, 247, 0.4)');
+        gradient.addColorStop(1, 'rgba(168, 85, 247, 0.0)');
+
+        predictionChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'AI予測資産額',
+                    data: dataPoints,
+                    borderColor: '#a855f7', // Purple
+                    backgroundColor: gradient,
+                    borderWidth: 2,
+                    pointBackgroundColor: '#1a2333',
+                    pointBorderColor: '#d8b4fe',
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.4 // 有機的な曲線
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index', intersect: false,
+                        backgroundColor: 'rgba(26, 35, 51, 0.95)',
+                        titleColor: '#a855f7',
+                        bodyFont: { size: 13 },
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        callbacks: { label: (c) => ' ¥' + c.raw.toLocaleString() }
+                    }
+                },
+                scales: {
+                    y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af', callback: (v) => (v/10000) + '万' } },
+                    x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
+                },
+                interaction: { mode: 'nearest', axis: 'x', intersect: false }
+            }
+        });
+    }
+</script>
+</body>
+</html>

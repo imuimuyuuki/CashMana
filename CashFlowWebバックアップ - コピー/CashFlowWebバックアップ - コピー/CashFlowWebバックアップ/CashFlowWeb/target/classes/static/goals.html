@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html class="dark" lang="ja">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>FutureFlow - 新しい目標を作成</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+</head>
+<body class="bg-[#101922] text-[#E0E0E0]">
+<div class="flex min-h-screen">
+    <aside class="flex w-64 flex-col border-r border-white/10 bg-[#111418] p-4">
+        <div class="flex items-center gap-3 p-2">
+            <span class="material-symbols-outlined text-blue-500" style="font-size: 32px;">monitoring</span>
+            <div class="flex flex-col"><h1 class="text-base font-medium leading-normal text-white">FutureFlow</h1><p class="text-sm font-normal leading-normal text-[#9cabba]">ようこそ</p></div>
+        </div>
+        <nav class="mt-8 flex flex-col gap-2">
+            <a class="flex items-center gap-3 rounded-lg px-3 py-2 text-gray-300 transition-colors hover:bg-white/10 hover:text-white" href="/index.html"><span class="material-symbols-outlined">dashboard</span><p class="text-sm font-medium">ダッシュボード</p></a>
+            <a class="flex items-center gap-3 rounded-lg bg-blue-500/20 px-3 py-2 text-blue-500" href="/goals.html"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">flag</span><p class="text-sm font-medium">目標管理</p></a>
+            <a class="flex items-center gap-3 rounded-lg px-3 py-2 text-gray-300 transition-colors hover:bg-white/10 hover:text-white" href="/portfolio.html"><span class="material-symbols-outlined">trending_up</span><p class="text-sm font-medium">ポートフォリオ</p></a>
+            <a class="flex items-center gap-3 rounded-lg px-3 py-2 text-gray-300 transition-colors hover:bg-white/10 hover:text-white" href="/budgets.html"><span class="material-symbols-outlined">savings</span><p class="text-sm font-medium">予算管理</p></a>
+            <a class="flex items-center gap-3 rounded-lg px-3 py-2 text-gray-300 transition-colors hover:bg-white/10 hover:text-white" href="/categories.html"><span class="material-symbols-outlined">label</span><p class="text-sm font-medium">カテゴリ管理</p></a>
+            <form action="/logout" method="POST" class="mt-auto pt-4 border-t border-white/10">
+                <button type="submit" class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-gray-400 transition-colors hover:bg-red-500/20 hover:text-red-400">
+                    <span class="material-symbols-outlined">logout</span>
+                    <p class="text-sm font-medium leading-normal">ログアウト</p>
+                </button>
+           </form>
+        </nav>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto p-8">
+        <div class="mx-auto max-w-4xl">
+            <header class="mb-6"><p class="text-4xl font-black leading-tight tracking-[-0.033em] text-white">未来の目標を作成</p></header>
+            <p class="pt-1 pb-3 text-base font-normal leading-normal text-[#E0E0E0]">まずは目標のカテゴリを選択してください。</p>
+            
+            <div id="goal-categories" class="my-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
+                </div>
+            
+            <h2 class="pt-8 pb-4 text-[22px] font-bold leading-tight tracking-[-0.015em] text-white">詳細を決めましょう</h2>
+            
+            <div class="space-y-6 rounded-xl border border-white/10 bg-[#111418] p-6">
+                <div>
+                    <label class="mb-2 block text-sm font-medium text-[#E0E0E0]" for="goal-name">目標の名前</label>
+                    <input class="block w-full rounded-lg border-transparent bg-[#283039] text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" id="goal-name" type="text" placeholder="例: パリ留学プログラム"/>
+                </div>
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-[#E0E0E0]" for="target-amount">目標金額 (円)</label>
+                        <div class="relative"><span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">¥</span>
+                            <input class="block w-full rounded-lg border-transparent bg-[#283039] pl-7 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" id="target-amount" type="number" placeholder="1500000"/>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-[#E0E0E0]" for="target-date">目標日</label>
+                        <input class="block w-full rounded-lg border-transparent bg-[#283039] text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" id="target-date" style="color-scheme: dark;" type="date"/>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 flex flex-col items-center justify-between gap-6 md:flex-row">
+                <div class="flex items-center gap-4 text-left">
+                    <p class="text-sm text-gray-400">入力内容を元にプレビューがここに表示されます。</p>
+                </div>
+                <button id="create-goal-btn" class="w-full rounded-lg bg-blue-600 py-3 px-8 font-semibold text-white shadow-[0_0_15px_rgba(37,140,244,0.5)] transition-all duration-300 hover:bg-blue-600/90 hover:shadow-[0_0_25px_rgba(37,140,244,0.8)] md:w-auto" type="button">
+                    目標を作成
+                </button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const goalCategories = [
+        { name: "家", imageUrl: "https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=800" },
+        { name: "車", imageUrl: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800" },
+        { name: "旅行", imageUrl: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=800" },
+        { name: "教育", imageUrl: "https://thumb.photo-ac.com/09/0938e704d79dc8b76975f0b03fa4ac50_t.jpeg" },
+        { name: "その他", imageUrl: "https://images.unsplash.com/photo-1497091071254-cc9b2ba7c48a?auto=format&fit=crop&w=800" }
+    ];
+    let selectedCategory = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const categoryContainer = document.getElementById('goal-categories');
+        goalCategories.forEach(category => {
+            const div = document.createElement('div');
+            div.className = "relative group cursor-pointer";
+            div.innerHTML = `<div class="absolute inset-0 rounded-lg bg-blue-500 opacity-0 blur-lg transition-opacity group-hover:opacity-50"></div><div class="relative flex aspect-square flex-col justify-end gap-3 rounded-lg border-2 border-transparent bg-cover bg-center p-4 transition-all duration-300 group-hover:border-blue-500" style="background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 100%), url('${category.imageUrl}');"><p class="text-base font-bold leading-tight text-white">${category.name}</p></div>`;
+            div.addEventListener('click', () => {
+                document.querySelectorAll('#goal-categories .border-blue-500').forEach(el => el.classList.remove('border-blue-500'));
+                div.querySelector('.relative > div').classList.add('border-blue-500');
+                selectedCategory = category;
+                const goalNameInput = document.getElementById('goal-name');
+                if (!goalNameInput.value.trim() || goalCategories.some(c => c.name === goalNameInput.value.trim())) {
+                    goalNameInput.value = category.name;
+                }
+            });
+            categoryContainer.appendChild(div);
+        });
+        document.getElementById('create-goal-btn').addEventListener('click', createGoal);
+    });
+
+    async function createGoal() {
+        const goalName = document.getElementById('goal-name').value;
+        const targetAmount = document.getElementById('target-amount').value;
+        const targetDate = document.getElementById('target-date').value;
+
+        if (!goalName || !targetAmount || !targetDate || !selectedCategory) {
+            alert("カテゴリを選択し、すべての項目を入力してください。");
+            return;
+        }
+        
+        const goalData = {
+            name: goalName,
+            targetAmount: parseFloat(targetAmount),
+            currentAmount: 0, // 新規作成時は常に0
+            targetDate: targetDate,
+            imageUrl: selectedCategory.imageUrl
+        };
+
+        const response = await fetch('/api/goals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(goalData)
+        });
+
+        if (response.ok) {
+            alert('新しい目標を作成しました！');
+            // ▼▼▼ 変更点: ダッシュボードへリダイレクト ▼▼▼
+            window.location.href = '/index.html'; 
+        } else {
+            alert('目標の作成に失敗しました。');
+        }
+    }
+</script>
+</body>
+</html>
