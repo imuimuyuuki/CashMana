@@ -62,11 +62,7 @@
             </goals>
         </execution>
     </executions>
-    <configuration>
-        <mainClass>com.example.CashFlowWeb.CashFlowWebApplication</mainClass>
-    </configuration>
 </plugin>
-        </plugins>
     </build>
 
 </project>
