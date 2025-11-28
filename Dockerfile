@@ -1,14 +1,15 @@
-# Mavenがあらかじめインストールされている環境を使います
-FROM maven:3-eclipse-temurin-17
+# 1. Java 17の環境を用意する
+FROM eclipse-temurin:17-jdk-jammy
 
-# 作業フォルダを作ります
+# 2. 作業フォルダを作る
 WORKDIR /app
 
-# ファイルをすべてコピーします
+# 3. ファイルをすべてコピーする
 COPY . .
 
-# 'mvnw' ファイルを使わず、システムに入っている 'mvn' コマンドでビルドします
-RUN mvn clean package -DskipTests
+# 4. 実行権限を与えて、ビルド（アプリの作成）を行う
+RUN chmod +x mvnw
+RUN ./mvnw clean package -DskipTests
 
-# アプリを起動します
+# 5. アプリを起動する
 CMD ["java", "-jar", "target/*.jar"]
