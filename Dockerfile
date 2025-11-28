@@ -12,4 +12,4 @@ COPY . .
 RUN mvn clean package -DskipTests
 
 # 5. アプリを起動する
-CMD ["java", "-jar", "target/*.jar"]
+CMD ["sh", "-c", "java -jar target/*.jar"]
