@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html class="dark" lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FutureFlow - 予算管理</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#258cf4",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#101922",
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-[#101922] text-[#E0E0E0]">
+<div class="flex min-h-screen">
+    <aside class="flex w-64 flex-col border-r border-white/10 bg-[#111418] p-4">
+        <div class="flex flex-col gap-4">
+            <div class="flex items-center gap-3 p-2">
+                <span class="material-symbols-outlined text-primary" style="font-size:32px;">monitoring</span>
+                <div class="flex flex-col"><h1 class="text-base font-medium leading-normal text-white">FutureFlow</h1><p class="text-sm font-normal leading-normal text-[#9cabba]">ようこそ</p></div>
+            </div>
+            <nav class="mt-1 flex flex-col gap-1">
+                <nav class="mt-3 flex flex-col gap-2">
+                    <a class="flex items-center gap-3 rounded-lg px-3 py-2 text-gray-300 transition-colors hover:bg-white/10 hover:text-white" href="/index.html"><span class="material-symbols-outlined">dashboard</span><p class="text-sm font-medium">ダッシュボード</p></a>
+                    <a class="flex items-center gap-3 rounded-lg  px-3 py-2 text-gray-300" href="/goals.html"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">flag</span><p class="text-sm font-medium">目標管理</p></a>
+                    <a class="flex items-center gap-3 rounded-lg  px-3 py-2 text-gray-300 transition-colors hover:bg-white/10 hover:text-white" href="/portfolio.html"><span class="material-symbols-outlined">trending_up</span><p class="text-sm font-medium">ポートフォリオ</p></a>
+                    <a class="flex items-center gap-3 rounded-lg px-3 py-2 bg-blue-500/20 text-blue-500 transition-colors hover:bg-white/10 hover:text-white" href="/budgets.html"><span class="material-symbols-outlined">savings</span><p class="text-sm font-medium">予算管理</p></a>
+                    <a class="flex items-center gap-3 rounded-lg px-3 py-2 text-gray-300 transition-colors hover:bg-white/10 hover:text-white" href="/categories.html"><span class="material-symbols-outlined">label</span><p class="text-sm font-medium">カテゴリ管理</p></a>
+                    <form action="/logout" method="POST" class="mt-auto pt-4 border-t border-white/10">
+                        <button type="submit" class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-gray-400 transition-colors hover:bg-red-500/20 hover:text-red-400">
+                            <span class="material-symbols-outlined">logout</span>
+                            <p class="text-sm font-medium leading-normal">ログアウト</p>
+                        </button>
+                   </form>
+                </nav>
+               
+            </nav>
+           
+        </div>
+    </aside>
+
+    <main class="flex-1 p-8 overflow-y-auto">
+        <div class="max-w-4xl mx-auto">
+            <div class="flex justify-between items-center mb-8">
+                <h1 class="text-4xl font-black text-white">予算管理</h1>
+                <input type="month" id="month-selector" class="form-input rounded-lg border-gray-600 bg-gray-700 text-white" style="color-scheme: dark;">
+            </div>
+            <div id="budget-list" class="space-y-4">
+            </div>
+        </div>
+    </main>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const monthSelector = document.getElementById('month-selector');
+        const today = new Date();
+        monthSelector.value = today.getFullYear() + '-' + ('0' + (today.getMonth() + 1)).slice(-2);
+        fetchBudgets();
+        monthSelector.addEventListener('change', fetchBudgets);
+    });
+
+    async function fetchBudgets() {
+        const yearMonth = document.getElementById('month-selector').value;
+        const response = await fetch(`/api/budgets?yearMonth=${yearMonth}`);
+        const budgets = await response.json();
+        const budgetList = document.getElementById('budget-list');
+        budgetList.innerHTML = '';
+
+        if (budgets.length === 0) {
+            budgetList.innerHTML = `<div class="rounded-xl bg-[#16212e] p-6 text-center text-gray-400">この月の支出カテゴリの予算はまだ設定されていません。</div>`;
+            return;
+        }
+
+        budgets.forEach(budget => {
+            const remaining = budget.budgetAmount - budget.actualAmount;
+            const percentage = budget.budgetAmount > 0 ? (budget.actualAmount / budget.budgetAmount) * 100 : 0;
+            const progressClass = percentage > 100 ? 'bg-red-500' : 'bg-primary';
+            const item = document.createElement('div');
+            item.className = 'rounded-xl bg-[#16212e] p-4';
+            item.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="font-medium text-white">${budget.categoryName}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-400">予算: ¥</span>
+                        <input type="number" value="${budget.budgetAmount}" data-category-id="${budget.categoryId}" class="budget-input form-input w-28 rounded-md border-gray-600 bg-gray-700 text-right text-white">
+                    </div>
+                </div>
+                <div class="mt-3 h-2 w-full rounded-full bg-gray-700"><div class="${progressClass} h-2 rounded-full" style="width: ${Math.min(percentage, 100)}%;"></div></div>
+                <div class="mt-2 flex justify-between text-sm text-gray-400">
+                    <span>実績: ¥${budget.actualAmount.toLocaleString()}</span>
+                    <span class="${remaining < 0 ? 'text-red-400' : 'text-gray-400'}">${remaining >= 0 ? '残り' : 'オーバー'}: ¥${Math.abs(remaining).toLocaleString()}</span>
+                </div>
+            `;
+            budgetList.appendChild(item);
+        });
+        document.querySelectorAll('.budget-input').forEach(input => input.addEventListener('change', saveBudget));
+    }
+
+    async function saveBudget(event) {
+        const budgetData = {
+            yearMonth: document.getElementById('month-selector').value,
+            categoryId: event.target.dataset.categoryId,
+            budgetAmount: parseFloat(event.target.value)
+        };
+        await fetch('/api/budgets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(budgetData) });
+        fetchBudgets();
+    }
+</script>
+</body>
+</html>
