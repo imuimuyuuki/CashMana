@@ -2,10 +2,8 @@ FROM maven:3-eclipse-temurin-17
 WORKDIR /app
 COPY . .
 
-RUN echo "========== FILE LIST START =========="
-# src フォルダの中身を全部表示させる
-RUN find . -maxdepth 5 -not -path '*/.*'
-RUN echo "========== FILE LIST END ============"
+# アプリをビルド（作成）する
+RUN mvn clean package -DskipTests
 
-# ここでわざと止めます
-RUN exit 1
+# アプリを起動する
+CMD ["sh", "-c", "java -jar target/*.jar"]
