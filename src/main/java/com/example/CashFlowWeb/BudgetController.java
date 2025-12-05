@@ -1,6 +1,7 @@
 package com.example.CashFlowWeb;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -10,23 +11,14 @@ public class BudgetController {
 
     private final BudgetDAO budgetDAO = new BudgetDAO();
 
-    /**
-     * 指定された月の予算状況を取得します。
-     */
     @GetMapping
-    public List<Budget> getBudgets(@RequestParam String yearMonth) {
-        return budgetDAO.getBudgetsForMonth(yearMonth);
+    public List<Budget> getBudgets(@AuthenticationPrincipal User user, @RequestParam String yearMonth) {
+        return budgetDAO.getBudgetsForMonth(user.getId(), yearMonth);
     }
 
-    /**
-     * 新しい予算を設定（または更新）します。
-     */
     @PostMapping
-    public ResponseEntity<Boolean> setBudget(@RequestBody Budget budget) {
-        boolean success = budgetDAO.saveOrUpdateBudget(budget.getYearMonth(), budget.getCategoryId(), budget.getBudgetAmount());
-        if (success) {
-            return ResponseEntity.ok(true);
-        }
-        return ResponseEntity.badRequest().build();
+    public ResponseEntity<Boolean> setBudget(@AuthenticationPrincipal User user, @RequestBody Budget budget) {
+        boolean success = budgetDAO.saveOrUpdateBudget(user.getId(), budget.getYearMonth(), budget.getCategoryId(), budget.getBudgetAmount());
+        return success ? ResponseEntity.ok(true) : ResponseEntity.badRequest().build();
     }
 }
