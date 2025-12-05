@@ -4,25 +4,20 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 資産(assets)テーブルのデータベース操作を担当するクラス。
- */
 public class AssetDAO {
 
-    /**
-     * 新しい資産を登録します (Create)。
-     */
-    public boolean addAsset(Asset asset) {
-        String sql = "INSERT INTO assets(name, ticker_symbol, quantity, purchase_price, current_price, asset_type) VALUES(?, ?, ?, ?, ?, ?)";
+    public boolean addAsset(Asset asset, int userId) {
+        String sql = "INSERT INTO assets(user_id, name, ticker_symbol, quantity, purchase_price, current_price, asset_type) VALUES(?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBManager.connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, asset.getName());
-            pstmt.setString(2, asset.getTickerSymbol());
-            pstmt.setDouble(3, asset.getQuantity());
-            pstmt.setDouble(4, asset.getPurchasePrice());
-            pstmt.setDouble(5, asset.getCurrentPrice());
-            pstmt.setString(6, asset.getAssetType());
+            pstmt.setInt(1, userId);
+            pstmt.setString(2, asset.getName());
+            pstmt.setString(3, asset.getTickerSymbol());
+            pstmt.setDouble(4, asset.getQuantity());
+            pstmt.setDouble(5, asset.getPurchasePrice());
+            pstmt.setDouble(6, asset.getCurrentPrice());
+            pstmt.setString(7, asset.getAssetType());
             
             pstmt.executeUpdate();
             return true;
@@ -32,69 +27,38 @@ public class AssetDAO {
         }
     }
 
-    /**
-     * 登録されているすべての資産を取得します (Read)。
-     */
-    public List<Asset> getAllAssets() {
+    public List<Asset> getAllAssets(int userId) {
         List<Asset> assets = new ArrayList<>();
-        String sql = "SELECT id, name, ticker_symbol, quantity, purchase_price, current_price, asset_type FROM assets ORDER BY name";
-
+        String sql = "SELECT * FROM assets WHERE user_id = ?";
         try (Connection conn = DBManager.connect();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                assets.add(new Asset(
-                    rs.getInt("id"),
-                    rs.getString("name"),
-                    rs.getString("ticker_symbol"),
-                    rs.getDouble("quantity"),
-                    rs.getDouble("purchase_price"),
-                    rs.getDouble("current_price"),
-                    rs.getString("asset_type")
-                ));
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, userId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    assets.add(mapToAsset(rs));
+                }
             }
-        } catch (SQLException e) {
-            System.err.println("資産取得エラー: " + e.getMessage());
-        }
+        } catch (SQLException e) { e.printStackTrace(); }
         return assets;
     }
 
-    /**
-     * IDを指定して単一の資産データを取得します。
-     */
-    public Asset getAssetById(int id) {
-        String sql = "SELECT id, name, ticker_symbol, quantity, purchase_price, current_price, asset_type FROM assets WHERE id = ?";
+    public Asset getAssetById(int id, int userId) {
+        String sql = "SELECT * FROM assets WHERE id = ? AND user_id = ?";
         try (Connection conn = DBManager.connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, id);
+            pstmt.setInt(2, userId);
             try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return new Asset(
-                        rs.getInt("id"),
-                        rs.getString("name"),
-                        rs.getString("ticker_symbol"),
-                        rs.getDouble("quantity"),
-                        rs.getDouble("purchase_price"),
-                        rs.getDouble("current_price"),
-                        rs.getString("asset_type")
-                    );
-                }
+                if (rs.next()) return mapToAsset(rs);
             }
-        } catch (SQLException e) {
-            System.err.println("単一資産の取得エラー: " + e.getMessage());
-        }
+        } catch (SQLException e) { e.printStackTrace(); }
         return null;
     }
 
-    /**
-     * 既存の資産情報を更新します (Update)。
-     */
-    public boolean updateAsset(Asset asset) {
-        String sql = "UPDATE assets SET name = ?, ticker_symbol = ?, quantity = ?, purchase_price = ?, current_price = ?, asset_type = ? WHERE id = ?";
+    public boolean updateAsset(Asset asset, int userId) {
+        String sql = "UPDATE assets SET name = ?, ticker_symbol = ?, quantity = ?, purchase_price = ?, current_price = ?, asset_type = ? WHERE id = ? AND user_id = ?";
         try (Connection conn = DBManager.connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
             pstmt.setString(1, asset.getName());
             pstmt.setString(2, asset.getTickerSymbol());
             pstmt.setDouble(3, asset.getQuantity());
@@ -102,29 +66,30 @@ public class AssetDAO {
             pstmt.setDouble(5, asset.getCurrentPrice());
             pstmt.setString(6, asset.getAssetType());
             pstmt.setInt(7, asset.getId());
-
-            int rowsAffected = pstmt.executeUpdate();
-            return rowsAffected > 0;
-        } catch (SQLException e) {
-            System.err.println("資産更新エラー: " + e.getMessage());
-            return false;
-        }
+            pstmt.setInt(8, userId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) { return false; }
     }
 
-    /**
-     * 指定されたIDの資産を削除します (Delete)。
-     */
-    public boolean deleteAsset(int id) {
-        String sql = "DELETE FROM assets WHERE id = ?";
+    public boolean deleteAsset(int id, int userId) {
+        String sql = "DELETE FROM assets WHERE id = ? AND user_id = ?";
         try (Connection conn = DBManager.connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
             pstmt.setInt(1, id);
-            int rowsAffected = pstmt.executeUpdate();
-            return rowsAffected > 0;
-        } catch (SQLException e) {
-            System.err.println("資産削除エラー: " + e.getMessage());
-            return false;
-        }
+            pstmt.setInt(2, userId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) { return false; }
+    }
+
+    private Asset mapToAsset(ResultSet rs) throws SQLException {
+        return new Asset(
+            rs.getInt("id"),
+            rs.getString("name"),
+            rs.getString("ticker_symbol"),
+            rs.getDouble("quantity"),
+            rs.getDouble("purchase_price"),
+            rs.getDouble("current_price"),
+            rs.getString("asset_type")
+        );
     }
 }
