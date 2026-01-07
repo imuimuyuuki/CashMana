@@ -12,14 +12,16 @@ public class MonthlySummary {
 
     private static final DecimalFormat FORMATTER = new DecimalFormat("#,###円");
 
+    // コンストラクタ
     public MonthlySummary(String month, double totalIncome, double totalExpense) {
         this.month = month;
         this.totalIncome = totalIncome;
         this.totalExpense = totalExpense;
     }
-    
+
     // デフォルトコンストラクタ (JSONデシリアライズに必須)
-    public MonthlySummary() {}
+    public MonthlySummary() {
+    }
 
     // ----------------------------------------
     // Getter Methods
@@ -44,11 +46,11 @@ public class MonthlySummary {
     public String getFormattedIncome() {
         return FORMATTER.format(totalIncome);
     }
-    
+
     public String getFormattedExpense() {
         return FORMATTER.format(totalExpense);
     }
-    
+
     public String getFormattedNetProfit() {
         return FORMATTER.format(getNetProfit());
     }
