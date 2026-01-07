@@ -12,6 +12,9 @@
         body { font-family: 'Inter', sans-serif; }
         .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
         .modal { backdrop-filter: blur(5px); }
+        /* アニメーション用 */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
     </style>
     <script>
         tailwind.config = {
@@ -21,7 +24,6 @@
                     colors: {
                         "primary": "#258cf4",
                         "background-dark": "#101922",
-                        // FX機能用のアクセントカラーを追加
                         "accent-buy": "#34d399",
                         "accent-sell": "#f87171",
                         "accent-stay": "#fbbf24"
@@ -129,10 +131,46 @@
         </div>
 
         <div class="mb-8 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
-            <h3 class="mb-4 text-lg font-bold text-white">AI資産予測シミュレーション</h3>
-            <p id="prediction-feedback" class="mb-4 text-gray-300"></p>
-            <div class="h-[250px]">
-                <canvas id="predictionChart"></canvas>
+            <h3 class="mb-4 text-lg font-bold text-white flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">timeline</span>
+                AI資産予測シミュレーション
+            </h3>
+            
+            <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                
+                <div class="lg:col-span-2">
+                    <div class="h-[300px] w-full">
+                        <canvas id="predictionChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-1 flex flex-col justify-center rounded-xl bg-[#111822] p-6 border border-white/5">
+                    <div class="mb-4">
+                        <span class="text-xs font-bold uppercase tracking-wider text-gray-500">AI診断レポート</span>
+                        <div class="mt-2 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-3xl text-primary">analytics</span>
+                            <span class="text-xl font-bold text-white">将来の見通し</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <p id="prediction-feedback-main" class="text-base font-medium text-white leading-relaxed">
+                            データを分析中...
+                        </p>
+                    </div>
+
+                    <div class="rounded-lg bg-primary/10 p-4 border border-primary/20">
+                        <div class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-primary mt-0.5">lightbulb</span>
+                            <div>
+                                <p class="text-sm font-bold text-primary mb-1">アクション提案</p>
+                                <p id="prediction-advice" class="text-sm text-gray-300">
+                                    毎月の収支バランスを維持することで、目標達成の可能性が高まります。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -141,6 +179,36 @@
                 <span class="material-symbols-outlined text-primary">currency_exchange</span>
                 AI FX / 外貨運用シミュレーション
             </h2>
+
+            <div class="mb-8 rounded-xl bg-gradient-to-r from-[#1a2333] to-[#111822] p-6 border border-white/10 shadow-lg">
+                <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">info</span>
+                    この機能について（AI分析の仕組み）
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-300 leading-relaxed">
+                    <div>
+                        <p class="font-bold text-gray-100 mb-1">📊 どんなデータを使っているの？</p>
+                        <p class="mb-3">
+                            過去30日間の実際の市場為替レート（USD/JPY）の変動データと、短期・中期の移動平均線、およびボラティリティ（変動率）のデータをリアルタイムで収集・分析しています。
+                        </p>
+                        <p class="font-bold text-gray-100 mb-1">🤖 どのAIを使用しているの？</p>
+                        <p>
+                            独自の<span class="text-primary font-bold">「時系列トレンド解析アルゴリズム」</span>を使用しています。これは、過去のチャートパターンから将来の価格変動確率を統計的に算出する機械学習モデル（回帰分析）に基づいています。
+                        </p>
+                    </div>
+                    <div>
+                        <p class="font-bold text-gray-100 mb-1">💡 なぜこの判断になるの？</p>
+                        <p>
+                            現在のレートが過去のトレンドからどれくらい乖離しているか（買われすぎ・売られすぎ）を計算し、「平均回帰性」という統計的性質に基づいて、反発するかトレンドが継続するかを判定しています。
+                        </p>
+                        <ul class="mt-2 space-y-1 list-disc list-inside text-gray-400">
+                            <li><span class="text-accent-buy font-bold">BUY</span>: 売られすぎゾーン。反発上昇の可能性が高い。</li>
+                            <li><span class="text-accent-sell font-bold">SELL</span>: 買われすぎゾーン。下落調整のリスクが高い。</li>
+                            <li><span class="text-accent-stay font-bold">STAY</span>: 方向感が不明確。リスク回避を推奨。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
             
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <div class="col-span-1 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
@@ -154,7 +222,7 @@
                         <p class="mt-2 text-sm text-gray-400">市場データを分析中...</p>
                     </div>
 
-                    <div id="ai-result" class="hidden">
+                    <div id="ai-result" class="hidden animate-fade-in">
                         <div class="mb-4 text-center">
                             <span id="recommendation-badge" class="inline-block rounded-full px-4 py-1 text-xl font-bold"></span>
                         </div>
@@ -208,7 +276,8 @@
                 </div>
             </div>
         </div>
-        </main>
+
+    </main>
 </div>
 
 <div id="modal" class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/50 opacity-0 transition-opacity duration-300">
@@ -257,16 +326,14 @@
     let barChartInstance = null;
     let pieChartInstance = null;
     let predictionChartInstance = null;
-    let fxChartInstance = null; // FX用チャート変数
-    let fxData = null; // FXデータ保持用
+    let fxChartInstance = null; 
+    let fxData = null; 
 
     document.addEventListener('DOMContentLoaded', () => {
         loadCategories('EXPENSE');
         updateDashboard();
         updatePrediction();
         setupPieChartListener();
-        
-        // FXデータの読み込み
         fetchFXData();
     });
 
@@ -419,7 +486,16 @@
         if (!response.ok) return;
         const result = await response.json();
 
-        document.getElementById('prediction-feedback').textContent = result.feedback;
+        // ▼▼▼ 修正箇所: テキストとアドバイスの更新ロジック ▼▼▼
+        document.getElementById('prediction-feedback-main').textContent = result.feedback;
+        
+        // アドバイスの出し分け（簡易ロジック）
+        const adviceElement = document.getElementById('prediction-advice');
+        if (result.averageMonthlyProfit > 0) {
+            adviceElement.textContent = "この調子でプラス収支を維持しましょう。余剰資金の30%を投資に回すとさらに効率的です。";
+        } else {
+            adviceElement.textContent = "まずは固定費（サブスク、通信費など）の見直しから始めましょう。赤字の解消が最優先です。";
+        }
 
         const ctx = document.getElementById('predictionChart').getContext('2d');
         if (predictionChartInstance) predictionChartInstance.destroy();
@@ -480,7 +556,7 @@
         });
     }
 
-    // ▼▼▼ FX関連のスクリプト ▼▼▼
+    // ▼▼▼ FXスクリプト ▼▼▼
     async function fetchFXData() {
         try {
             const response = await fetch('/api/fx/analysis');
@@ -581,7 +657,6 @@
         profitElem.textContent = `${profit >= 0 ? '+' : ''}¥${Math.round(profit).toLocaleString()}`;
         profitElem.className = `text-2xl font-bold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`;
     }
-    // ▲▲▲ FXスクリプトここまで ▲▲▲
 
     const modal = document.getElementById('modal');
     const modalContent = modal.querySelector('div');
