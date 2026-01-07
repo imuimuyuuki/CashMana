@@ -12,7 +12,6 @@
         body { font-family: 'Inter', sans-serif; }
         .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
         .modal { backdrop-filter: blur(5px); }
-        /* アニメーション用 */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
     </style>
@@ -137,7 +136,6 @@
             </h3>
             
             <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
-                
                 <div class="lg:col-span-2">
                     <div class="h-[300px] w-full">
                         <canvas id="predictionChart"></canvas>
@@ -296,11 +294,11 @@
                 <label class="mb-1 block text-sm font-medium text-gray-400">タイプ</label>
                 <div class="flex gap-4">
                     <label class="flex items-center gap-2">
-                        <input type="radio" name="type" value="INCOME" class="text-primary focus:ring-primary" onclick="loadCategories('INCOME')">
+                        <input type="radio" name="type" value="INCOME" class="text-primary focus:ring-primary" onclick="handleTypeChange('INCOME')">
                         <span class="text-white">収入</span>
                     </label>
                     <label class="flex items-center gap-2">
-                        <input type="radio" name="type" value="EXPENSE" checked class="text-primary focus:ring-primary" onclick="loadCategories('EXPENSE')">
+                        <input type="radio" name="type" value="EXPENSE" checked class="text-primary focus:ring-primary" onclick="handleTypeChange('EXPENSE')">
                         <span class="text-white">支出</span>
                     </label>
                 </div>
@@ -309,6 +307,14 @@
                 <label class="mb-1 block text-sm font-medium text-gray-400">カテゴリ</label>
                 <select id="category" required class="w-full rounded-lg border-white/10 bg-[#101922] text-white focus:border-primary focus:ring-primary">
                 </select>
+            </div>
+            
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-400">目標への貯金（任意）</label>
+                <select id="goal-select" class="w-full rounded-lg border-white/10 bg-[#101922] text-white focus:border-primary focus:ring-primary disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed">
+                    <option value="">-- 目標を選択しない --</option>
+                </select>
+                <p id="goal-help" class="text-xs text-gray-500 mt-1 hidden">※目標への紐付けは「収入」時のみ可能です</p>
             </div>
             <div class="flex items-center gap-2">
                 <input type="checkbox" id="isExtraordinary" class="rounded border-white/10 bg-[#101922] text-primary focus:ring-primary">
@@ -330,12 +336,32 @@
     let fxData = null; 
 
     document.addEventListener('DOMContentLoaded', () => {
-        loadCategories('EXPENSE');
+        // 初期状態は支出なので、カテゴリ読み込みと目標の無効化を行う
+        handleTypeChange('EXPENSE');
+        loadGoals();
         updateDashboard();
         updatePrediction();
         setupPieChartListener();
         fetchFXData();
     });
+
+    // ▼▼▼ タイプ変更時のハンドラ（追加） ▼▼▼
+    function handleTypeChange(type) {
+        loadCategories(type);
+        const goalSelect = document.getElementById('goal-select');
+        const goalHelp = document.getElementById('goal-help');
+        
+        if (type === 'EXPENSE') {
+            // 支出の場合は目標選択を無効化し、値もクリア
+            goalSelect.value = "";
+            goalSelect.disabled = true;
+            goalHelp.classList.remove('hidden');
+        } else {
+            // 収入の場合は有効化
+            goalSelect.disabled = false;
+            goalHelp.classList.add('hidden');
+        }
+    }
 
     async function loadCategories(type) {
         const response = await fetch('/api/categories');
@@ -348,6 +374,23 @@
             option.textContent = c.name;
             select.appendChild(option);
         });
+    }
+    
+    async function loadGoals() {
+        try {
+            const response = await fetch('/api/goals');
+            if (response.ok) {
+                const goals = await response.json();
+                const select = document.getElementById('goal-select');
+                select.innerHTML = '<option value="">-- 目標を選択しない --</option>'; 
+                goals.forEach(g => {
+                    const option = document.createElement('option');
+                    option.value = g.id;
+                    option.textContent = g.name;
+                    select.appendChild(option);
+                });
+            }
+        } catch (e) { console.error("Goals fetch error:", e); }
     }
 
     async function updateDashboard() {
@@ -370,6 +413,7 @@
             const assets = await assetResponse.json();
             const portfolioValue = assets.reduce((sum, a) => sum + a.currentValue, 0);
             
+            // ▼▼▼ 修正: 総資産計算を元に戻す (収入 - 支出) ▼▼▼
             const totalCash = transactions.reduce((sum, t) => sum + (t.type === 'INCOME' ? t.amount : -t.amount), 0);
             const totalAssets = totalCash + portfolioValue;
 
@@ -486,10 +530,7 @@
         if (!response.ok) return;
         const result = await response.json();
 
-        // ▼▼▼ 修正箇所: テキストとアドバイスの更新ロジック ▼▼▼
         document.getElementById('prediction-feedback-main').textContent = result.feedback;
-        
-        // アドバイスの出し分け（簡易ロジック）
         const adviceElement = document.getElementById('prediction-advice');
         if (result.averageMonthlyProfit > 0) {
             adviceElement.textContent = "この調子でプラス収支を維持しましょう。余剰資金の30%を投資に回すとさらに効率的です。";
@@ -556,7 +597,6 @@
         });
     }
 
-    // ▼▼▼ FXスクリプト ▼▼▼
     async function fetchFXData() {
         try {
             const response = await fetch('/api/fx/analysis');
@@ -669,6 +709,10 @@
             modalContent.classList.remove('scale-95');
             modalContent.classList.add('scale-100');
         }, 10);
+        
+        // モーダルを開いたときの状態に合わせてチェック
+        const currentType = document.querySelector('input[name="type"]:checked').value;
+        handleTypeChange(currentType);
     }
 
     function closeModal() {
@@ -680,11 +724,17 @@
 
     document.getElementById('transaction-form').addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        const goalSelect = document.getElementById('goal-select');
+        // 無効化されている（支出の）場合は値を送信しない
+        const goalId = (!goalSelect.disabled && goalSelect.value) ? parseInt(goalSelect.value) : null;
+
         const data = {
             date: document.getElementById('date').value,
             amount: document.getElementById('amount').value,
             type: document.querySelector('input[name="type"]:checked').value,
             categoryId: document.getElementById('category').value,
+            goalId: goalId, 
             isExtraordinary: document.getElementById('isExtraordinary').checked
         };
 
@@ -696,8 +746,13 @@
 
         closeModal();
         e.target.reset();
+        // リセット後に初期状態（支出）に戻す
+        document.querySelector('input[name="type"][value="EXPENSE"]').checked = true;
+        handleTypeChange('EXPENSE');
+        
         updateDashboard();
         updatePrediction();
+        loadGoals();
     });
     
     function logout() {
