@@ -2,6 +2,7 @@ package com.example.CashFlowWeb;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -10,15 +11,36 @@ import java.util.List;
 public class BudgetController {
 
     private final BudgetDAO budgetDAO = new BudgetDAO();
+    private final UserDAO userDAO = new UserDAO();
 
+    /**
+     * 指定された月の予算状況を取得します。
+     */
     @GetMapping
-    public List<Budget> getBudgets(@AuthenticationPrincipal User user, @RequestParam String yearMonth) {
-        return budgetDAO.getBudgetsForMonth(user.getId(), yearMonth);
+    public List<Budget> getBudgets(@RequestParam String yearMonth, @AuthenticationPrincipal UserDetails userDetails) {
+        User user = userDAO.findByUsername(userDetails.getUsername());
+        // ★ userId を渡す
+        return budgetDAO.getBudgetsForMonth(yearMonth, user.getId());
     }
 
+    /**
+     * 新しい予算を設定（または更新）します。
+     */
     @PostMapping
-    public ResponseEntity<Boolean> setBudget(@AuthenticationPrincipal User user, @RequestBody Budget budget) {
-        boolean success = budgetDAO.saveOrUpdateBudget(user.getId(), budget.getYearMonth(), budget.getCategoryId(), budget.getBudgetAmount());
-        return success ? ResponseEntity.ok(true) : ResponseEntity.badRequest().build();
+    public ResponseEntity<Boolean> setBudget(@RequestBody Budget budget,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = userDAO.findByUsername(userDetails.getUsername());
+
+        // ★ userId を渡す
+        boolean success = budgetDAO.saveOrUpdateBudget(
+                budget.getYearMonth(),
+                budget.getCategoryId(),
+                budget.getBudgetAmount(),
+                user.getId());
+
+        if (success) {
+            return ResponseEntity.ok(true);
+        }
+        return ResponseEntity.badRequest().build();
     }
 }
