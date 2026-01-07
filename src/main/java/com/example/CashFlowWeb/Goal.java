@@ -8,14 +8,7 @@ public class Goal {
     private String targetDate;
     private String imageUrl;
 
-    // ユーザーID (前回追加したものがあれば残す)
-    // 今回のビルドエラーには影響しませんが、マルチユーザー対応なら必要です
-    // private int userId; 
-
-    // --- コンストラクタ ---
-    public Goal() {}
-
-    // --- Getters ---
+    // Getters
     public int getId() { return id; }
     public String getName() { return name; }
     public double getTargetAmount() { return targetAmount; }
@@ -23,7 +16,7 @@ public class Goal {
     public String getTargetDate() { return targetDate; }
     public String getImageUrl() { return imageUrl; }
 
-    // --- Setters ---
+    // Setters
     public void setId(int id) { this.id = id; }
     public void setName(String name) { this.name = name; }
     public void setTargetAmount(double targetAmount) { this.targetAmount = targetAmount; }
