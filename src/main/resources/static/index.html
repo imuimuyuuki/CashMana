@@ -14,7 +14,22 @@
         .modal { backdrop-filter: blur(5px); }
     </style>
     <script>
-        tailwind.config = { darkMode: "class", theme: { extend: { colors: { "primary": "#258cf4", "background-dark": "#101922" }, fontFamily: { "display": ["Inter", "sans-serif"] }, } } }
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#258cf4",
+                        "background-dark": "#101922",
+                        // FX機能用のアクセントカラーを追加
+                        "accent-buy": "#34d399",
+                        "accent-sell": "#f87171",
+                        "accent-stay": "#fbbf24"
+                    },
+                    fontFamily: { "display": ["Inter", "sans-serif"] },
+                }
+            }
+        }
         Chart.defaults.color = '#9ca3af';
         Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
     </script>
@@ -27,26 +42,22 @@
             <span class="font-display text-xl font-bold tracking-tight text-white">FutureFlow</span>
         </div>
         <nav class="mt-8 flex flex-1 flex-col gap-2">
-            <a href="index.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+            <a href="index.html" class="flex items-center gap-3 rounded-lg bg-primary/10 px-4 py-3 text-primary transition-colors hover:bg-primary/20">
                 <span class="material-symbols-outlined">dashboard</span>
                 <span class="font-medium">ダッシュボード</span>
             </a>
-            
             <a href="categories.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
                 <span class="material-symbols-outlined">category</span>
                 <span class="font-medium">カテゴリ管理</span>
             </a>
-            
             <a href="budgets.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
                 <span class="material-symbols-outlined">savings</span>
                 <span class="font-medium">予算管理</span>
             </a>
-            
             <a href="goals.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
                 <span class="material-symbols-outlined">flag</span>
                 <span class="font-medium">目標設定</span>
             </a>
-            
             <a href="portfolio.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
                 <span class="material-symbols-outlined">show_chart</span>
                 <span class="font-medium">ポートフォリオ</span>
@@ -117,14 +128,87 @@
             </div>
         </div>
 
-        <div class="rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+        <div class="mb-8 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
             <h3 class="mb-4 text-lg font-bold text-white">AI資産予測シミュレーション</h3>
             <p id="prediction-feedback" class="mb-4 text-gray-300"></p>
             <div class="h-[250px]">
                 <canvas id="predictionChart"></canvas>
             </div>
         </div>
-    </main>
+
+        <div class="border-t border-white/10 pt-8 mt-8">
+            <h2 class="mb-6 text-2xl font-bold text-white flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">currency_exchange</span>
+                AI FX / 外貨運用シミュレーション
+            </h2>
+            
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div class="col-span-1 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+                    <h3 class="mb-4 text-lg font-bold text-white flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">psychology</span>
+                        AI推奨アクション
+                    </h3>
+                    
+                    <div id="ai-loading" class="text-center py-10">
+                        <span class="material-symbols-outlined animate-spin text-4xl text-primary">sync</span>
+                        <p class="mt-2 text-sm text-gray-400">市場データを分析中...</p>
+                    </div>
+
+                    <div id="ai-result" class="hidden">
+                        <div class="mb-4 text-center">
+                            <span id="recommendation-badge" class="inline-block rounded-full px-4 py-1 text-xl font-bold"></span>
+                        </div>
+                        <div class="mb-6 text-center">
+                            <p class="text-sm text-gray-400">現在レート (USD/JPY)</p>
+                            <p id="current-rate" class="text-4xl font-bold text-white">---.--</p>
+                        </div>
+                        <div class="mb-4 rounded-lg bg-[#101922] p-4">
+                            <p class="text-xs font-bold text-gray-500 mb-1">AIの分析根拠:</p>
+                            <p id="ai-reason" class="text-sm text-gray-300 leading-relaxed"></p>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-gray-400">
+                            <span>予測リスク変動幅:</span>
+                            <span id="risk-percentage" class="font-bold text-red-400"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-span-1 lg:col-span-2 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+                    <h3 class="mb-4 text-lg font-bold text-white">トレンド予測チャート (過去+未来予測)</h3>
+                    <div class="relative h-[300px] w-full">
+                        <canvas id="fxChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="col-span-1 lg:col-span-3 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+                    <h3 class="mb-4 text-lg font-bold text-white flex items-center gap-2">
+                        <span class="material-symbols-outlined text-green-400">calculate</span>
+                        ドル資産運用シミュレーション
+                    </h3>
+                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-gray-400">投資金額 (円)</label>
+                            <div class="flex gap-2">
+                                <input type="number" id="invest-amount" value="100000" class="w-full rounded-lg border-white/10 bg-[#101922] text-white focus:border-primary focus:ring-primary">
+                                <button onclick="calculateFXSimulation()" class="rounded-lg bg-primary px-6 py-2 font-medium text-white hover:bg-primary/90">試算</button>
+                            </div>
+                            <p class="mt-2 text-xs text-gray-500">※現在のレートでドルを購入し、1週間後に決済した場合のシミュレーション</p>
+                        </div>
+                        <div class="flex items-center justify-around rounded-lg bg-[#101922] p-4">
+                            <div class="text-center">
+                                <p class="text-xs text-gray-400">予想評価額</p>
+                                <p id="sim-result-amount" class="text-2xl font-bold text-white">---</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-xs text-gray-400">予想損益</p>
+                                <p id="sim-result-profit" class="text-2xl font-bold text-gray-500">---</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </main>
 </div>
 
 <div id="modal" class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/50 opacity-0 transition-opacity duration-300">
@@ -155,7 +239,7 @@
             <div>
                 <label class="mb-1 block text-sm font-medium text-gray-400">カテゴリ</label>
                 <select id="category" required class="w-full rounded-lg border-white/10 bg-[#101922] text-white focus:border-primary focus:ring-primary">
-                    </select>
+                </select>
             </div>
             <div class="flex items-center gap-2">
                 <input type="checkbox" id="isExtraordinary" class="rounded border-white/10 bg-[#101922] text-primary focus:ring-primary">
@@ -173,12 +257,17 @@
     let barChartInstance = null;
     let pieChartInstance = null;
     let predictionChartInstance = null;
+    let fxChartInstance = null; // FX用チャート変数
+    let fxData = null; // FXデータ保持用
 
     document.addEventListener('DOMContentLoaded', () => {
         loadCategories('EXPENSE');
         updateDashboard();
         updatePrediction();
         setupPieChartListener();
+        
+        // FXデータの読み込み
+        fetchFXData();
     });
 
     async function loadCategories(type) {
@@ -196,11 +285,9 @@
 
     async function updateDashboard() {
         try {
-            // 1. 直近の取引を取得
             const txResponse = await fetch('/api/transactions?limit=100'); 
             const transactions = await txResponse.json();
 
-            // KPI計算
             const now = new Date();
             const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
             
@@ -212,12 +299,10 @@
                 .filter(t => t.type === 'EXPENSE' && t.date.startsWith(thisMonth))
                 .reduce((sum, t) => sum + t.amount, 0);
 
-            // 資産APIから総資産取得
             const assetResponse = await fetch('/api/portfolio/assets');
             const assets = await assetResponse.json();
             const portfolioValue = assets.reduce((sum, a) => sum + a.currentValue, 0);
             
-            // 全期間の現金収支
             const totalCash = transactions.reduce((sum, t) => sum + (t.type === 'INCOME' ? t.amount : -t.amount), 0);
             const totalAssets = totalCash + portfolioValue;
 
@@ -228,14 +313,12 @@
             const savingsRate = income > 0 ? ((income - expense) / income * 100).toFixed(1) : 0;
             document.getElementById('savings-rate').textContent = `${savingsRate}%`;
 
-            // 2. 棒グラフデータの取得
             const monthlyResponse = await fetch('/api/transactions/monthly-summary');
             if(monthlyResponse.ok) {
                 const monthlyData = await monthlyResponse.json();
                 renderBarChart(monthlyData);
             }
 
-            // 3. 円グラフ (初期表示: 今月)
             updatePieChartByPeriod('this_month');
 
         } catch (error) {
@@ -243,7 +326,6 @@
         }
     }
 
-    // 棒グラフ描画
     function renderBarChart(data) {
         const ctx = document.getElementById('balanceChart').getContext('2d');
         if (barChartInstance) barChartInstance.destroy();
@@ -257,18 +339,8 @@
             data: {
                 labels: labels,
                 datasets: [
-                    {
-                        label: '収入',
-                        data: incomes,
-                        backgroundColor: '#34d399',
-                        borderRadius: 4
-                    },
-                    {
-                        label: '支出',
-                        data: expenses,
-                        backgroundColor: '#f87171',
-                        borderRadius: 4
-                    }
+                    { label: '収入', data: incomes, backgroundColor: '#34d399', borderRadius: 4 },
+                    { label: '支出', data: expenses, backgroundColor: '#f87171', borderRadius: 4 }
                 ]
             },
             options: {
@@ -280,7 +352,6 @@
                         grid: { color: 'rgba(255, 255, 255, 0.05)' }, 
                         ticks: { 
                             color: '#9ca3af',
-                            // 縦軸の値をわかりやすく整形（万円単位など）
                             callback: function(value) {
                                 if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(1) + '億円';
                                 if (Math.abs(value) >= 10000) return (value / 10000).toFixed(0) + '万円';
@@ -294,7 +365,6 @@
         });
     }
 
-    // 円グラフ制御
     function setupPieChartListener() {
         document.getElementById('pie-chart-period').addEventListener('change', (e) => {
             updatePieChartByPeriod(e.target.value);
@@ -315,7 +385,6 @@
         updatePieChart(startDate, endDate);
     }
 
-    // 円グラフ描画
     async function updatePieChart(startDate, endDate) {
         try {
             const response = await fetch(`/api/transactions/summary?startDate=${startDate}&endDate=${endDate}&type=EXPENSE`);
@@ -331,9 +400,7 @@
                     labels: data.map(d => d.categoryName),
                     datasets: [{
                         data: data.map(d => d.totalAmount),
-                        backgroundColor: [
-                            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1'
-                        ],
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1'],
                         borderWidth: 0
                     }]
                 },
@@ -347,7 +414,6 @@
         } catch(e) { console.error(e); }
     }
 
-    // AI予測グラフ（★ここを修正して見やすくしました）
     async function updatePrediction() {
         const response = await fetch('/api/transactions/predict?monthsToPredict=12');
         if (!response.ok) return;
@@ -359,7 +425,6 @@
         if (predictionChartInstance) predictionChartInstance.destroy();
 
         const labels = Array.from({length: 13}, (_, i) => i + "ヶ月後");
-        
         const gradient = ctx.createLinearGradient(0, 0, 0, 300);
         gradient.addColorStop(0, 'rgba(168, 85, 247, 0.4)');
         gradient.addColorStop(1, 'rgba(168, 85, 247, 0)');
@@ -402,7 +467,6 @@
                         grid: { color: 'rgba(255, 255, 255, 0.05)' }, 
                         ticks: { 
                             color: '#9ca3af', 
-                            // ★ここを修正: 金額に応じて単位を自動切り替え（億、万、円）
                             callback: function(value) {
                                 if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(1) + '億円';
                                 if (Math.abs(value) >= 10000) return (value / 10000).toFixed(0) + '万円';
@@ -416,7 +480,109 @@
         });
     }
 
-    // モーダル制御
+    // ▼▼▼ FX関連のスクリプト ▼▼▼
+    async function fetchFXData() {
+        try {
+            const response = await fetch('/api/fx/analysis');
+            if (!response.ok) throw new Error("API Error");
+            fxData = await response.json();
+            
+            renderAnalysis(fxData);
+            renderFXChart(fxData);
+        } catch (error) {
+            console.error("FX Data fetch error:", error);
+            document.getElementById('ai-loading').innerHTML = '<p class="text-red-400">データの取得に失敗しました</p>';
+        }
+    }
+
+    function renderAnalysis(data) {
+        document.getElementById('ai-loading').classList.add('hidden');
+        document.getElementById('ai-result').classList.remove('hidden');
+
+        document.getElementById('current-rate').textContent = `¥${data.currentRate.toFixed(2)}`;
+        document.getElementById('ai-reason').textContent = data.reason;
+        document.getElementById('risk-percentage').textContent = `±${data.riskPercentage.toFixed(1)}%`;
+
+        const badge = document.getElementById('recommendation-badge');
+        if (data.recommendation === 'BUY') {
+            badge.textContent = '買い推奨 (BUY)';
+            badge.className = 'inline-block rounded-full bg-accent-buy/20 text-accent-buy px-4 py-1 text-xl font-bold';
+        } else if (data.recommendation === 'SELL') {
+            badge.textContent = '売り推奨 (SELL)';
+            badge.className = 'inline-block rounded-full bg-accent-sell/20 text-accent-sell px-4 py-1 text-xl font-bold';
+        } else {
+            badge.textContent = '様子見 (STAY)';
+            badge.className = 'inline-block rounded-full bg-accent-stay/20 text-accent-stay px-4 py-1 text-xl font-bold';
+        }
+    }
+
+    function renderFXChart(data) {
+        const ctx = document.getElementById('fxChart').getContext('2d');
+        if (fxChartInstance) fxChartInstance.destroy();
+
+        const historyLength = data.history.length;
+        const totalLabels = Array.from({length: historyLength + data.prediction.length}, (_, i) => i < historyLength ? `${i-historyLength}日前` : `${i-historyLength+1}日後`);
+        const chartData = [...data.history, ...data.prediction];
+
+        fxChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: totalLabels,
+                datasets: [{
+                    label: 'USD/JPY レート',
+                    data: chartData,
+                    borderColor: (ctx) => {
+                        const index = ctx.p0DataIndex;
+                        return index < historyLength - 1 ? '#3b82f6' : '#a855f7'; 
+                    },
+                    segment: {
+                        borderDash: (ctx) => ctx.p0DataIndex >= historyLength - 1 ? [6, 6] : undefined,
+                    },
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { intersect: false, mode: 'index' },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: { label: (c) => `1ドル = ${c.raw.toFixed(2)}円` }
+                    }
+                },
+                scales: {
+                    y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af' } },
+                    x: { display: false }
+                }
+            }
+        });
+    }
+
+    function calculateFXSimulation() {
+        if (!fxData) return;
+        
+        const yenAmount = parseFloat(document.getElementById('invest-amount').value);
+        if (isNaN(yenAmount) || yenAmount <= 0) {
+            alert("有効な金額を入力してください");
+            return;
+        }
+
+        const dollars = yenAmount / fxData.currentRate;
+        const futureRate = fxData.prediction[fxData.prediction.length - 1];
+        const futureYen = dollars * futureRate;
+        const profit = futureYen - yenAmount;
+
+        document.getElementById('sim-result-amount').textContent = `¥${Math.round(futureYen).toLocaleString()}`;
+        const profitElem = document.getElementById('sim-result-profit');
+        profitElem.textContent = `${profit >= 0 ? '+' : ''}¥${Math.round(profit).toLocaleString()}`;
+        profitElem.className = `text-2xl font-bold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`;
+    }
+    // ▲▲▲ FXスクリプトここまで ▲▲▲
+
     const modal = document.getElementById('modal');
     const modalContent = modal.querySelector('div');
 
