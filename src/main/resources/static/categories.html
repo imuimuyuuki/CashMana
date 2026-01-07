@@ -29,27 +29,41 @@
 <body class="bg-[#101922] text-[#E0E0E0]">
 <div class="flex min-h-screen">
     <aside class="flex w-64 flex-col border-r border-white/10 bg-[#111418] p-4">
-        <div class="flex flex-col gap-4">
-            <div class="flex items-center gap-3 p-2">
-                <span class="material-symbols-outlined text-primary" style="font-size:32px;">monitoring</span>
-                <div class="flex flex-col"><h1 class="text-base font-medium leading-normal text-white">FutureFlow</h1><p class="text-sm font-normal leading-normal text-[#9cabba]">ようこそ</p></div>
-            </div>
-            <nav class="mt-1 flex flex-col gap-1">
-                <nav class="mt-3 flex flex-col gap-2">
-                    <a class="flex items-center gap-3 rounded-lg px-3 py-2 text-gray-300 transition-colors hover:bg-white/10 hover:text-white" href="/index.html"><span class="material-symbols-outlined">dashboard</span><p class="text-sm font-medium">ダッシュボード</p></a>
-                    <a class="flex items-center gap-3 rounded-lg  px-3 py-2 text-gray-300" href="/goals.html"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">flag</span><p class="text-sm font-medium">目標管理</p></a>
-                    <a class="flex items-center gap-3 rounded-lg  px-3 py-2 text-gray-300 transition-colors hover:bg-white/10 hover:text-white" href="/portfolio.html"><span class="material-symbols-outlined">trending_up</span><p class="text-sm font-medium">ポートフォリオ</p></a>
-                    <a class="flex items-center gap-3 rounded-lg px-3 py-2 text-gray-300 transition-colors hover:bg-white/10 hover:text-white" href="/budgets.html"><span class="material-symbols-outlined">savings</span><p class="text-sm font-medium">予算管理</p></a>
-                    <a class="flex items-center gap-3 rounded-lg bg-blue-500/20 px-3 py-2 text-blue-500 transition-colors hover:bg-white/10 hover:text-white" href="/categories.html"><span class="material-symbols-outlined">label</span><p class="text-sm font-medium">カテゴリ管理</p></a>
-                    <form action="/logout" method="POST" class="mt-auto pt-4 border-t border-white/10">
-                        <button type="submit" class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-gray-400 transition-colors hover:bg-red-500/20 hover:text-red-400">
-                            <span class="material-symbols-outlined">logout</span>
-                            <p class="text-sm font-medium leading-normal">ログアウト</p>
-                        </button>
-                   </form>
-                </nav>
-               
-            </nav>
+        <div class="flex items-center gap-3 p-2">
+            <span class="material-symbols-outlined text-3xl text-primary">account_balance_wallet</span>
+            <span class="font-display text-xl font-bold tracking-tight text-white">FutureFlow</span>
+        </div>
+        <nav class="mt-8 flex flex-1 flex-col gap-2">
+            <a href="index.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+                <span class="material-symbols-outlined">dashboard</span>
+                <span class="font-medium">ダッシュボード</span>
+            </a>
+            
+            <a href="categories.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+                <span class="material-symbols-outlined">category</span>
+                <span class="font-medium">カテゴリ管理</span>
+            </a>
+            
+            <a href="budgets.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+                <span class="material-symbols-outlined">savings</span>
+                <span class="font-medium">予算管理</span>
+            </a>
+            
+            <a href="goals.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+                <span class="material-symbols-outlined">flag</span>
+                <span class="font-medium">目標設定</span>
+            </a>
+            
+            <a href="portfolio.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+                <span class="material-symbols-outlined">show_chart</span>
+                <span class="font-medium">ポートフォリオ</span>
+            </a>
+        </nav>
+        <div class="mt-auto border-t border-white/10 pt-4">
+            <a href="#" onclick="logout()" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-red-500/10 hover:text-red-400">
+                <span class="material-symbols-outlined">logout</span>
+                <span class="font-medium">ログアウト</span>
+            </a>
         </div>
     </aside>
 
