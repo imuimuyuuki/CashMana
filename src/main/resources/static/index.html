@@ -163,7 +163,7 @@
                             <div>
                                 <p class="text-sm font-bold text-primary mb-1">アクション提案</p>
                                 <p id="prediction-advice" class="text-sm text-gray-300">
-                                    毎月の収支バランスを維持することで、目標達成の可能性が高まります。
+                                    毎月の収支バランスを維持しましょう。
                                 </p>
                             </div>
                         </div>
@@ -175,7 +175,10 @@
         <div class="border-t border-white/10 pt-8 mt-8">
             <h2 class="mb-6 text-2xl font-bold text-white flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary">currency_exchange</span>
-                AI FX / 外貨運用シミュレーション
+                <span class="flex items-center gap-2">
+                    AI FX / 外貨運用シミュレーション
+                    <span class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded-full animate-pulse">LIVE</span>
+                </span>
             </h2>
 
             <div class="mb-8 rounded-xl bg-gradient-to-r from-[#1a2333] to-[#111822] p-6 border border-white/10 shadow-lg">
@@ -187,17 +190,17 @@
                     <div>
                         <p class="font-bold text-gray-100 mb-1">📊 どんなデータを使っているの？</p>
                         <p class="mb-3">
-                            過去30日間の実際の市場為替レート（USD/JPY）の変動データと、短期・中期の移動平均線、およびボラティリティ（変動率）のデータをリアルタイムで収集・分析しています。
+                            実際の市場為替レート（USD/JPY）をリアルタイムで取得し、短期・中期の移動平均線、およびボラティリティ（変動率）のデータを分析しています。
                         </p>
                         <p class="font-bold text-gray-100 mb-1">🤖 どのAIを使用しているの？</p>
                         <p>
-                            独自の<span class="text-primary font-bold">「時系列トレンド解析アルゴリズム」</span>を使用しています。これは、過去のチャートパターンから将来の価格変動確率を統計的に算出する機械学習モデル（回帰分析）に基づいています。
+                            独自の<span class="text-primary font-bold">「時系列トレンド解析アルゴリズム」</span>を使用しています。過去のチャートパターンから将来の価格変動確率を統計的に算出します。
                         </p>
                     </div>
                     <div>
                         <p class="font-bold text-gray-100 mb-1">💡 なぜこの判断になるの？</p>
                         <p>
-                            現在のレートが過去のトレンドからどれくらい乖離しているか（買われすぎ・売られすぎ）を計算し、「平均回帰性」という統計的性質に基づいて、反発するかトレンドが継続するかを判定しています。
+                            現在のレートがトレンドからどれくらい乖離しているか（買われすぎ・売られすぎ）を計算し、反発するかトレンドが継続するかを判定しています。
                         </p>
                         <ul class="mt-2 space-y-1 list-disc list-inside text-gray-400">
                             <li><span class="text-accent-buy font-bold">BUY</span>: 売られすぎゾーン。反発上昇の可能性が高い。</li>
@@ -226,7 +229,7 @@
                         </div>
                         <div class="mb-6 text-center">
                             <p class="text-sm text-gray-400">現在レート (USD/JPY)</p>
-                            <p id="current-rate" class="text-4xl font-bold text-white">---.--</p>
+                            <p id="current-rate" class="text-4xl font-bold text-white transition-all duration-300">---.--</p>
                         </div>
                         <div class="mb-4 rounded-lg bg-[#101922] p-4">
                             <p class="text-xs font-bold text-gray-500 mb-1">AIの分析根拠:</p>
@@ -240,7 +243,7 @@
                 </div>
 
                 <div class="col-span-1 lg:col-span-2 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
-                    <h3 class="mb-4 text-lg font-bold text-white">トレンド予測チャート (過去+未来予測)</h3>
+                    <h3 class="mb-4 text-lg font-bold text-white">トレンド予測チャート (リアルタイム更新)</h3>
                     <div class="relative h-[300px] w-full">
                         <canvas id="fxChart"></canvas>
                     </div>
@@ -335,24 +338,30 @@
     let fxChartInstance = null; 
     let fxData = null; 
 
+    // 自動更新用のタイマーID
+    let fxIntervalId = null;
+
     document.addEventListener('DOMContentLoaded', () => {
-        // 初期状態は支出なので、カテゴリ読み込みと目標の無効化を行う
-        handleTypeChange('EXPENSE');
+        handleTypeChange('EXPENSE'); // 初期状態の設定
         loadGoals();
         updateDashboard();
         updatePrediction();
         setupPieChartListener();
+        
+        // 初回実行
         fetchFXData();
+        // 3秒ごとに更新 (リアルタイム感を出す)
+        fxIntervalId = setInterval(fetchFXData, 3000);
     });
 
-    // ▼▼▼ タイプ変更時のハンドラ（追加） ▼▼▼
+    // タイプ変更時のハンドラ
     function handleTypeChange(type) {
         loadCategories(type);
         const goalSelect = document.getElementById('goal-select');
         const goalHelp = document.getElementById('goal-help');
         
         if (type === 'EXPENSE') {
-            // 支出の場合は目標選択を無効化し、値もクリア
+            // 支出の場合は目標選択を無効化
             goalSelect.value = "";
             goalSelect.disabled = true;
             goalHelp.classList.remove('hidden');
@@ -413,7 +422,7 @@
             const assets = await assetResponse.json();
             const portfolioValue = assets.reduce((sum, a) => sum + a.currentValue, 0);
             
-            // ▼▼▼ 修正: 総資産計算を元に戻す (収入 - 支出) ▼▼▼
+            // 総資産計算 (収入 - 支出)
             const totalCash = transactions.reduce((sum, t) => sum + (t.type === 'INCOME' ? t.amount : -t.amount), 0);
             const totalAssets = totalCash + portfolioValue;
 
@@ -532,10 +541,13 @@
 
         document.getElementById('prediction-feedback-main').textContent = result.feedback;
         const adviceElement = document.getElementById('prediction-advice');
-        if (result.averageMonthlyProfit > 0) {
-            adviceElement.textContent = "この調子でプラス収支を維持しましょう。余剰資金の30%を投資に回すとさらに効率的です。";
+        
+        if (result.shortfallAmount > 0) {
+            adviceElement.textContent = `目標達成のために、毎月の純利益をあと ¥${Math.round(result.shortfallAmount).toLocaleString()} 増やすことを推奨します。`;
+        } else if (result.isAchievable) {
+            adviceElement.textContent = "このペースで続ければ目標達成可能です。";
         } else {
-            adviceElement.textContent = "まずは固定費（サブスク、通信費など）の見直しから始めましょう。赤字の解消が最優先です。";
+            adviceElement.textContent = "収支の見直しが必要です。";
         }
 
         const ctx = document.getElementById('predictionChart').getContext('2d');
@@ -607,7 +619,6 @@
             renderFXChart(fxData);
         } catch (error) {
             console.error("FX Data fetch error:", error);
-            document.getElementById('ai-loading').innerHTML = '<p class="text-red-400">データの取得に失敗しました</p>';
         }
     }
 
@@ -634,6 +645,8 @@
 
     function renderFXChart(data) {
         const ctx = document.getElementById('fxChart').getContext('2d');
+        
+        // グラフ更新時にインスタンスを作り直す（チラつき防止のためアニメーションOFFを推奨）
         if (fxChartInstance) fxChartInstance.destroy();
 
         const historyLength = data.history.length;
@@ -661,6 +674,8 @@
                 }]
             },
             options: {
+                // 自動更新時はアニメーションを無効にして、リアルタイム感を出す
+                animation: { duration: 0 },
                 responsive: true,
                 maintainAspectRatio: false,
                 interaction: { intersect: false, mode: 'index' },
@@ -710,7 +725,6 @@
             modalContent.classList.add('scale-100');
         }, 10);
         
-        // モーダルを開いたときの状態に合わせてチェック
         const currentType = document.querySelector('input[name="type"]:checked').value;
         handleTypeChange(currentType);
     }
@@ -746,7 +760,6 @@
 
         closeModal();
         e.target.reset();
-        // リセット後に初期状態（支出）に戻す
         document.querySelector('input[name="type"][value="EXPENSE"]').checked = true;
         handleTypeChange('EXPENSE');
         
