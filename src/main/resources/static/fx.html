@@ -1,0 +1,278 @@
+
+<!DOCTYPE html>
+<html class="dark" lang="ja">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>FutureFlow - AI FXシミュレーション</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#258cf4",
+                        "background-dark": "#101922",
+                        "accent-buy": "#34d399",
+                        "accent-sell": "#f87171",
+                        "accent-stay": "#fbbf24"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-[#101922] text-[#E0E0E0]">
+<div class="flex min-h-screen">
+    <aside class="flex w-64 flex-col border-r border-white/10 bg-[#111418] p-4">
+        <div class="flex items-center gap-3 p-2">
+            <span class="material-symbols-outlined text-3xl text-primary">account_balance_wallet</span>
+            <span class="font-display text-xl font-bold tracking-tight text-white">FutureFlow</span>
+        </div>
+        <nav class="mt-8 flex flex-1 flex-col gap-2">
+            <a href="index.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+                <span class="material-symbols-outlined">dashboard</span>
+                <span class="font-medium">ダッシュボード</span>
+            </a>
+            <a href="categories.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+                <span class="material-symbols-outlined">category</span>
+                <span class="font-medium">カテゴリ管理</span>
+            </a>
+            <a href="budgets.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+                <span class="material-symbols-outlined">savings</span>
+                <span class="font-medium">予算管理</span>
+            </a>
+            <a href="goals.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+                <span class="material-symbols-outlined">flag</span>
+                <span class="font-medium">目標設定</span>
+            </a>
+            <a href="portfolio.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+                <span class="material-symbols-outlined">show_chart</span>
+                <span class="font-medium">ポートフォリオ</span>
+            </a>
+            <a href="fx.html" class="flex items-center gap-3 rounded-lg bg-primary/10 px-4 py-3 text-primary transition-colors hover:bg-primary/20">
+                <span class="material-symbols-outlined">currency_exchange</span>
+                <span class="font-medium">FXシミュレーション</span>
+            </a>
+        </nav>
+        <div class="mt-auto border-t border-white/10 pt-4">
+            <a href="#" onclick="logout()" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-red-500/10 hover:text-red-400">
+                <span class="material-symbols-outlined">logout</span>
+                <span class="font-medium">ログアウト</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto bg-[#101922] p-8">
+        <header class="mb-8">
+            <h1 class="font-display text-3xl font-bold text-white">AI FXシミュレーション</h1>
+            <p class="mt-1 text-gray-400">AIによる為替予測を活用し、資産運用のリスクとリターンを分析します。</p>
+        </header>
+
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            
+            <div class="col-span-1 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+                <h2 class="mb-4 text-lg font-bold text-white flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">psychology</span>
+                    AI推奨アクション
+                </h2>
+                
+                <div id="ai-loading" class="text-center py-10">
+                    <span class="material-symbols-outlined animate-spin text-4xl text-primary">sync</span>
+                    <p class="mt-2 text-sm text-gray-400">市場データを分析中...</p>
+                </div>
+
+                <div id="ai-result" class="hidden">
+                    <div class="mb-4 text-center">
+                        <span id="recommendation-badge" class="inline-block rounded-full px-4 py-1 text-xl font-bold"></span>
+                    </div>
+                    <div class="mb-6 text-center">
+                        <p class="text-sm text-gray-400">現在レート (USD/JPY)</p>
+                        <p id="current-rate" class="text-4xl font-bold text-white">---.--</p>
+                    </div>
+                    <div class="mb-4 rounded-lg bg-[#101922] p-4">
+                        <p class="text-xs font-bold text-gray-500 mb-1">AIの分析根拠:</p>
+                        <p id="ai-reason" class="text-sm text-gray-300 leading-relaxed"></p>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-gray-400">
+                        <span>予測リスク変動幅:</span>
+                        <span id="risk-percentage" class="font-bold text-red-400"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-1 lg:col-span-2 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+                <h2 class="mb-4 text-lg font-bold text-white">トレンド予測チャート (30日履歴 + 7日予測)</h2>
+                <div class="relative h-[300px] w-full">
+                    <canvas id="fxChart"></canvas>
+                </div>
+            </div>
+
+            <div class="col-span-1 lg:col-span-3 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+                <h2 class="mb-4 text-lg font-bold text-white flex items-center gap-2">
+                    <span class="material-symbols-outlined text-green-400">calculate</span>
+                    ドル資産運用シミュレーション
+                </h2>
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-400">投資金額 (円)</label>
+                        <div class="flex gap-2">
+                            <input type="number" id="invest-amount" value="100000" class="w-full rounded-lg border-white/10 bg-[#101922] text-white focus:border-primary focus:ring-primary">
+                            <button onclick="calculateSimulation()" class="rounded-lg bg-primary px-6 py-2 font-medium text-white hover:bg-primary/90">試算</button>
+                        </div>
+                        <p class="mt-2 text-xs text-gray-500">※現在のレートでドルを購入し、1週間後に決済した場合のシミュレーション</p>
+                    </div>
+                    <div class="flex items-center justify-around rounded-lg bg-[#101922] p-4">
+                        <div class="text-center">
+                            <p class="text-xs text-gray-400">予想評価額</p>
+                            <p id="sim-result-amount" class="text-2xl font-bold text-white">---</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-xs text-gray-400">予想損益</p>
+                            <p id="sim-result-profit" class="text-2xl font-bold text-gray-500">---</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    let fxData = null;
+    let chartInstance = null;
+
+    document.addEventListener('DOMContentLoaded', fetchFXData);
+
+    async function fetchFXData() {
+        try {
+            const response = await fetch('/api/fx/analysis');
+            if (!response.ok) throw new Error("API Error");
+            fxData = await response.json();
+            
+            renderAnalysis(fxData);
+            renderChart(fxData);
+        } catch (error) {
+            console.error("FX Data fetch error:", error);
+            document.getElementById('ai-loading').innerHTML = '<p class="text-red-400">データの取得に失敗しました</p>';
+        }
+    }
+
+    function renderAnalysis(data) {
+        document.getElementById('ai-loading').classList.add('hidden');
+        document.getElementById('ai-result').classList.remove('hidden');
+
+        document.getElementById('current-rate').textContent = `¥${data.currentRate.toFixed(2)}`;
+        document.getElementById('ai-reason').textContent = data.reason;
+        document.getElementById('risk-percentage').textContent = `±${data.riskPercentage.toFixed(1)}%`;
+
+        const badge = document.getElementById('recommendation-badge');
+        if (data.recommendation === 'BUY') {
+            badge.textContent = '買い推奨 (BUY)';
+            badge.className = 'inline-block rounded-full bg-accent-buy/20 text-accent-buy px-4 py-1 text-xl font-bold';
+        } else if (data.recommendation === 'SELL') {
+            badge.textContent = '売り推奨 (SELL)';
+            badge.className = 'inline-block rounded-full bg-accent-sell/20 text-accent-sell px-4 py-1 text-xl font-bold';
+        } else {
+            badge.textContent = '様子見 (STAY)';
+            badge.className = 'inline-block rounded-full bg-accent-stay/20 text-accent-stay px-4 py-1 text-xl font-bold';
+        }
+    }
+
+    function renderChart(data) {
+        const ctx = document.getElementById('fxChart').getContext('2d');
+        
+        // データの結合
+        const historyLength = data.history.length;
+        const totalLabels = Array.from({length: historyLength + data.prediction.length}, (_, i) => i < historyLength ? `${i-historyLength}日前` : `${i-historyLength+1}日後`);
+        
+        // チャート用データ配列作成 (過去分と予測分をつなぐ)
+        const chartData = [...data.history, ...data.prediction];
+        
+        // 色分け用: 過去は青、予測は点線
+        const segmentData = {
+            p1: { px: historyLength - 1, py: data.history[historyLength-1] } // 接続点
+        };
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: totalLabels,
+                datasets: [{
+                    label: 'USD/JPY レート',
+                    data: chartData,
+                    borderColor: (ctx) => {
+                        const index = ctx.p0DataIndex;
+                        return index < historyLength - 1 ? '#3b82f6' : '#a855f7'; // 過去:青, 未来:紫
+                    },
+                    segment: {
+                        borderDash: (ctx) => ctx.p0DataIndex >= historyLength - 1 ? [6, 6] : undefined,
+                    },
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { intersect: false, mode: 'index' },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: { label: (c) => `1ドル = ${c.raw.toFixed(2)}円` }
+                    }
+                },
+                scales: {
+                    y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af' } },
+                    x: { display: false } // X軸ラベルは多すぎるので非表示
+                }
+            }
+        });
+    }
+
+    function calculateSimulation() {
+        if (!fxData) return;
+        
+        const yenAmount = parseFloat(document.getElementById('invest-amount').value);
+        if (isNaN(yenAmount) || yenAmount <= 0) {
+            alert("有効な金額を入力してください");
+            return;
+        }
+
+        // 現在レートでドルを購入
+        const dollars = yenAmount / fxData.currentRate;
+        
+        // 1週間後の予測レート (予測配列の最後)
+        const futureRate = fxData.prediction[fxData.prediction.length - 1];
+        
+        // 円に戻す
+        const futureYen = dollars * futureRate;
+        const profit = futureYen - yenAmount;
+
+        document.getElementById('sim-result-amount').textContent = `¥${Math.round(futureYen).toLocaleString()}`;
+        
+        const profitElem = document.getElementById('sim-result-profit');
+        profitElem.textContent = `${profit >= 0 ? '+' : ''}¥${Math.round(profit).toLocaleString()}`;
+        profitElem.className = `text-2xl font-bold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`;
+    }
+
+    function logout() {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/logout';
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+</body>
+</html>
