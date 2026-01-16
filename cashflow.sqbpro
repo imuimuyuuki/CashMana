@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="cashflow.db" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="2828"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="assets" custom_title="0" dock_id="2" table="4,6:mainassets"/><dock_state state="000000ff00000000fd00000001000000020000000000000000fc0100000002fb000000160064006f0063006b00420072006f00770073006500310100000000ffffffff0000000000000000fb000000160064006f0063006b00420072006f00770073006500320100000000ffffffff0000012700ffffff000000000000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings/></tab_browse><tab_sql><sql name="SQL 1*">-- ▼▼▼ ここからコピー ▼▼▼
+PRAGMA foreign_keys = OFF;
+
+-- 1. 既存データのクリア
+DELETE FROM transactions WHERE user_id = (SELECT id FROM users WHERE username = 'bit2026');
+DELETE FROM budgets WHERE user_id = (SELECT id FROM users WHERE username = 'bit2026');
+DELETE FROM assets WHERE user_id = (SELECT id FROM users WHERE username = 'bit2026');
+DELETE FROM goals WHERE user_id = (SELECT id FROM users WHERE username = 'bit2026');
+DELETE FROM categories WHERE user_id = (SELECT id FROM users WHERE username = 'bit2026');
+
+-- 2. カテゴリ作成
+INSERT INTO categories (user_id, name, type)
+SELECT id, '給料', 'INCOME' FROM users WHERE username = 'bit2026' UNION ALL
+SELECT id, 'ボーナス', 'INCOME' FROM users WHERE username = 'bit2026' UNION ALL
+SELECT id, '副収入', 'INCOME' FROM users WHERE username = 'bit2026' UNION ALL
+SELECT id, '食費', 'EXPENSE' FROM users WHERE username = 'bit2026' UNION ALL
+SELECT id, '家賃', 'EXPENSE' FROM users WHERE username = 'bit2026' UNION ALL
+SELECT id, '日用品', 'EXPENSE' FROM users WHERE username = 'bit2026' UNION ALL
+SELECT id, '交通費', 'EXPENSE' FROM users WHERE username = 'bit2026' UNION ALL
+SELECT id, '交際・娯楽', 'EXPENSE' FROM users WHERE username = 'bit2026' UNION ALL
+SELECT id, '通信・光熱費', 'EXPENSE' FROM users WHERE username = 'bit2026' UNION ALL
+SELECT id, 'ファッション', 'EXPENSE' FROM users WHERE username = 'bit2026' UNION ALL
+SELECT id, '投資・貯蓄', 'EXPENSE' FROM users WHERE username = 'bit2026';
+
+-- 3. ポートフォリオ資産 (任天堂とビットコイン)
+INSERT INTO assets (user_id, name, ticker_symbol, quantity, purchase_price, current_price, asset_type)
+SELECT id, '任天堂', '7974', 100, 7000, 8200, 'STOCK' 
+FROM users WHERE username = 'bit2026' 
+UNION ALL
+SELECT id, 'ビットコイン', 'BTC', 0.03, 9000000, 11000000, 'CRYPTO' 
+FROM users WHERE username = 'bit2026';
+
+-- 4. 予算設定 (2026-01)
+INSERT INTO budgets (user_id, category_id, amount, year_month)
+SELECT u.id, c.id, amount_val, '2026-01'
+FROM users u
+JOIN categories c ON u.id = c.user_id
+JOIN (
+  SELECT '食費' as cat_name, 45000 as amount_val UNION ALL
+  SELECT '家賃', 82000 UNION ALL
+  SELECT '日用品', 10000 UNION ALL
+  SELECT '交通費', 15000 UNION ALL
+  SELECT '交際・娯楽', 30000 UNION ALL
+  SELECT '通信・光熱費', 15000 UNION ALL
+  SELECT 'ファッション', 20000 UNION ALL
+  SELECT '投資・貯蓄', 50000
+) t ON c.name = t.cat_name
+WHERE u.username = 'bit2026';
+
+-- 5. 目標設定
+INSERT INTO goals (user_id, name, target_amount, current_amount, target_date)
+SELECT id, 'ハワイ旅行', 500000, 250000, '2027-01-15' FROM users WHERE username = 'bit2026';
+
+-- 6. 取引データ (1年分)
+INSERT INTO transactions (user_id, date, amount, type, category_id, goal_id, is_extraordinary)
+SELECT u.id, date_val, amount_val, type_val, 
+  (SELECT id FROM categories WHERE user_id = u.id AND name = cat_name), 
+  (CASE WHEN is_goal_val = 1 THEN (SELECT id FROM goals WHERE user_id = u.id LIMIT 1) ELSE NULL END),
+  0
+FROM users u, (
+  -- 1月
+  SELECT '2025-01-24' as date_val, 235000 as amount_val, 'INCOME' as type_val, '給料' as cat_name, 0 as is_goal_val UNION ALL
+  SELECT '2025-01-27', 82000, 'EXPENSE', '家賃', 0 UNION ALL
+  SELECT '2025-01-30', 16000, 'EXPENSE', '通信・光熱費', 0 UNION ALL
+  SELECT '2025-01-05', 45000, 'EXPENSE', '交際・娯楽', 0 UNION ALL
+  SELECT '2025-01-15', 50000, 'EXPENSE', '投資・貯蓄', 0 UNION ALL
+  -- 2月
+  SELECT '2025-02-25', 238000, 'INCOME', '給料', 0 UNION ALL
+  SELECT '2025-02-27', 82000, 'EXPENSE', '家賃', 0 UNION ALL
+  SELECT '2025-02-28', 17500, 'EXPENSE', '通信・光熱費', 0 UNION ALL
+  SELECT '2025-02-14', 12000, 'EXPENSE', '交際・娯楽', 0 UNION ALL
+  SELECT '2025-02-25', 50000, 'EXPENSE', '投資・貯蓄', 0 UNION ALL
+  -- 3月
+  SELECT '2025-03-25', 265000, 'INCOME', '給料', 0 UNION ALL
+  SELECT '2025-03-27', 82000, 'EXPENSE', '家賃', 0 UNION ALL
+  SELECT '2025-03-30', 13000, 'EXPENSE', '通信・光熱費', 0 UNION ALL
+  SELECT '2025-03-15', 35000, 'EXPENSE', '交際・娯楽', 0 UNION ALL
+  SELECT '2025-03-20', 20000, 'EXPENSE', 'ファッション', 0 UNION ALL
+  SELECT '2025-03-25', 50000, 'EXPENSE', '投資・貯蓄', 0 UNION ALL
+  -- 4月
+  SELECT '2025-04-25', 245000, 'INCOME', '給料', 0 UNION ALL
+  SELECT '2025-04-27', 82000, 'EXPENSE', '家賃', 0 UNION ALL
+  SELECT '2025-04-30', 9500, 'EXPENSE', '通信・光熱費', 0 UNION ALL
+  SELECT '2025-04-10', 15000, 'EXPENSE', '交際・娯楽', 0 UNION ALL
+  SELECT '2025-04-25', 50000, 'EXPENSE', '投資・貯蓄', 0 UNION ALL
+  -- 5月
+  SELECT '2025-05-23', 242000, 'INCOME', '給料', 0 UNION ALL
+  SELECT '2025-05-27', 82000, 'EXPENSE', '家賃', 0 UNION ALL
+  SELECT '2025-05-30', 9000, 'EXPENSE', '通信・光熱費', 0 UNION ALL
+  SELECT '2025-05-05', 60000, 'EXPENSE', '交際・娯楽', 0 UNION ALL
+  SELECT '2025-05-25', 50000, 'EXPENSE', '投資・貯蓄', 0 UNION ALL
+  -- 6月
+  SELECT '2025-06-25', 245000, 'INCOME', '給料', 0 UNION ALL
+  SELECT '2025-06-10', 380000, 'INCOME', 'ボーナス', 0 UNION ALL
+  SELECT '2025-06-27', 82000, 'EXPENSE', '家賃', 0 UNION ALL
+  SELECT '2025-06-30', 11000, 'EXPENSE', '通信・光熱費', 0 UNION ALL
+  SELECT '2025-06-15', 200000, 'EXPENSE', '投資・貯蓄', 0 UNION ALL
+  SELECT '2025-06-20', 30000, 'EXPENSE', 'ファッション', 0 UNION ALL
+  -- 7月
+  SELECT '2025-07-25', 248000, 'INCOME', '給料', 0 UNION ALL
+  SELECT '2025-07-27', 82000, 'EXPENSE', '家賃', 0 UNION ALL
+  SELECT '2025-07-30', 14000, 'EXPENSE', '通信・光熱費', 0 UNION ALL
+  SELECT '2025-07-20', 25000, 'EXPENSE', '交際・娯楽', 0 UNION ALL
+  SELECT '2025-07-25', 50000, 'EXPENSE', '投資・貯蓄', 0 UNION ALL
+  -- 8月
+  SELECT '2025-08-25', 235000, 'INCOME', '給料', 0 UNION ALL
+  SELECT '2025-08-27', 82000, 'EXPENSE', '家賃', 0 UNION ALL
+  SELECT '2025-08-30', 18000, 'EXPENSE', '通信・光熱費', 0 UNION ALL
+  SELECT '2025-08-13', 20000, 'EXPENSE', '交通費', 0 UNION ALL
+  SELECT '2025-08-25', 50000, 'EXPENSE', '投資・貯蓄', 0 UNION ALL
+  -- 9月
+  SELECT '2025-09-25', 245000, 'INCOME', '給料', 0 UNION ALL
+  SELECT '2025-09-27', 82000, 'EXPENSE', '家賃', 0 UNION ALL
+  SELECT '2025-09-30', 13000, 'EXPENSE', '通信・光熱費', 0 UNION ALL
+  SELECT '2025-09-20', 15000, 'INCOME', '副収入', 0 UNION ALL
+  SELECT '2025-09-25', 50000, 'EXPENSE', '投資・貯蓄', 0 UNION ALL
+  -- 10月
+  SELECT '2025-10-24', 255000, 'INCOME', '給料', 0 UNION ALL
+  SELECT '2025-10-27', 82000, 'EXPENSE', '家賃', 0 UNION ALL
+  SELECT '2025-10-30', 9000, 'EXPENSE', '通信・光熱費', 0 UNION ALL
+  SELECT '2025-10-15', 15000, 'EXPENSE', '食費', 0 UNION ALL
+  SELECT '2025-10-25', 50000, 'EXPENSE', '投資・貯蓄', 0 UNION ALL
+  -- 11月
+  SELECT '2025-11-25', 248000, 'INCOME', '給料', 0 UNION ALL
+  SELECT '2025-11-27', 82000, 'EXPENSE', '家賃', 0 UNION ALL
+  SELECT '2025-11-30', 11000, 'EXPENSE', '通信・光熱費', 0 UNION ALL
+  SELECT '2025-11-05', 35000, 'EXPENSE', '食費', 0 UNION ALL
+  SELECT '2025-11-10', 5000, 'EXPENSE', '日用品', 0 UNION ALL
+  SELECT '2025-11-15', 25000, 'EXPENSE', 'ファッション', 0 UNION ALL
+  SELECT '2025-11-25', 50000, 'EXPENSE', '投資・貯蓄', 0 UNION ALL
+  -- 12月
+  SELECT '2025-12-10', 380000, 'INCOME', 'ボーナス', 0 UNION ALL
+  SELECT '2025-12-25', 250000, 'INCOME', '給料', 0 UNION ALL
+  SELECT '2025-12-27', 82000, 'EXPENSE', '家賃', 0 UNION ALL
+  SELECT '2025-12-30', 15000, 'EXPENSE', '通信・光熱費', 0 UNION ALL
+  SELECT '2025-12-05', 40000, 'EXPENSE', '交際・娯楽', 0 UNION ALL
+  SELECT '2025-12-24', 20000, 'EXPENSE', '交際・娯楽', 0 UNION ALL
+  SELECT '2025-12-20', 200000, 'EXPENSE', '投資・貯蓄', 1 UNION ALL
+  -- 1月
+  SELECT '2026-01-04', 5000, 'EXPENSE', '交際・娯楽', 0 UNION ALL
+  SELECT '2026-01-08', 3500, 'EXPENSE', '食費', 0 UNION ALL
+  SELECT '2026-01-10', 8000, 'EXPENSE', '日用品', 0 UNION ALL
+  SELECT '2026-01-12', 15000, 'EXPENSE', 'ファッション', 0 UNION ALL
+  SELECT '2026-01-15', 12000, 'EXPENSE', '食費', 0
+) t WHERE u.username = 'bit2026';
+
+PRAGMA foreign_keys = ON;
+-- ▲▲▲ ここまで ▲▲▲</sql><current_tab id="0"/></tab_sql></sqlb_project>
