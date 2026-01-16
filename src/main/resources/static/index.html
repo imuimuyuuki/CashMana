@@ -371,116 +371,39 @@
         updatePrediction();
         setupPieChartListener();
         
-        // ★FXデータの取得開始
         fetchFXData();
         fxIntervalId = setInterval(fetchFXData, 3000);
     });
 
-    // ▼ FX関連の関数群 (前回消えていた可能性が高い部分) ▼
-    async function fetchFXData() {
+    async function updateDashboard() {
         try {
-            const response = await fetch('/api/fx/analysis');
-            if (!response.ok) throw new Error("API Error");
-            fxData = await response.json();
-            
-            renderAnalysis(fxData);
-            renderFXChart(fxData);
-        } catch (error) {
-            console.error("FX Data fetch error:", error);
-            // エラー時はローディングのままにせずメッセージを出すと親切ですが、
-            // 今回は前回と同じ動き（エラーログのみ）にします。
-        }
+            const txResponse = await fetch('/api/transactions?limit=100'); 
+            const transactions = await txResponse.json();
+            renderTransactionList(transactions);
+
+            const now = new Date();
+            const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const income = transactions.filter(t => t.type === 'INCOME' && t.date.startsWith(thisMonth)).reduce((sum, t) => sum + t.amount, 0);
+            const expense = transactions.filter(t => t.type === 'EXPENSE' && t.date.startsWith(thisMonth)).reduce((sum, t) => sum + t.amount, 0);
+            const assetResponse = await fetch('/api/portfolio/assets');
+            const assets = await assetResponse.json();
+            const portfolioValue = assets.reduce((sum, a) => sum + a.currentValue, 0);
+            const totalCash = transactions.reduce((sum, t) => sum + (t.type === 'INCOME' ? t.amount : -t.amount), 0);
+            const totalAssets = totalCash + portfolioValue;
+
+            document.getElementById('total-assets').textContent = `¥${Math.round(totalAssets).toLocaleString()}`;
+            document.getElementById('monthly-income').textContent = `¥${Math.round(income).toLocaleString()}`;
+            document.getElementById('monthly-expense').textContent = `¥${Math.round(expense).toLocaleString()}`;
+            const savingsRate = income > 0 ? ((income - expense) / income * 100).toFixed(1) : 0;
+            document.getElementById('savings-rate').textContent = `${savingsRate}%`;
+
+            const monthlyResponse = await fetch('/api/transactions/monthly-summary');
+            if(monthlyResponse.ok) renderBarChart(await monthlyResponse.json());
+            updatePieChartByPeriod('this_month');
+
+        } catch (error) { console.error("Dashboard update error:", error); }
     }
 
-    function renderAnalysis(data) {
-        document.getElementById('ai-loading').classList.add('hidden');
-        document.getElementById('ai-result').classList.remove('hidden');
-
-        document.getElementById('current-rate').textContent = `¥${data.currentRate.toFixed(2)}`;
-        document.getElementById('ai-reason').textContent = data.reason;
-        document.getElementById('risk-percentage').textContent = `±${data.riskPercentage.toFixed(1)}%`;
-
-        const badge = document.getElementById('recommendation-badge');
-        if (data.recommendation === 'BUY') {
-            badge.textContent = '買い推奨 (BUY)';
-            badge.className = 'inline-block rounded-full bg-accent-buy/20 text-accent-buy px-4 py-1 text-xl font-bold';
-        } else if (data.recommendation === 'SELL') {
-            badge.textContent = '売り推奨 (SELL)';
-            badge.className = 'inline-block rounded-full bg-accent-sell/20 text-accent-sell px-4 py-1 text-xl font-bold';
-        } else {
-            badge.textContent = '様子見 (STAY)';
-            badge.className = 'inline-block rounded-full bg-accent-stay/20 text-accent-stay px-4 py-1 text-xl font-bold';
-        }
-    }
-
-    function renderFXChart(data) {
-        const ctx = document.getElementById('fxChart').getContext('2d');
-        if (fxChartInstance) fxChartInstance.destroy();
-
-        const historyLength = data.history.length;
-        const totalLabels = Array.from({length: historyLength + data.prediction.length}, (_, i) => i < historyLength ? `${i-historyLength}日前` : `${i-historyLength+1}日後`);
-        const chartData = [...data.history, ...data.prediction];
-
-        fxChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: totalLabels,
-                datasets: [{
-                    label: 'USD/JPY レート',
-                    data: chartData,
-                    borderColor: (ctx) => {
-                        const index = ctx.p0DataIndex;
-                        return index < historyLength - 1 ? '#3b82f6' : '#a855f7'; 
-                    },
-                    segment: {
-                        borderDash: (ctx) => ctx.p0DataIndex >= historyLength - 1 ? [6, 6] : undefined,
-                    },
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    pointHoverRadius: 5,
-                    tension: 0.1
-                }]
-            },
-            options: {
-                animation: { duration: 0 },
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { intersect: false, mode: 'index' },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: { label: (c) => `1ドル = ${c.raw.toFixed(2)}円` }
-                    }
-                },
-                scales: {
-                    y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af' } },
-                    x: { display: false }
-                }
-            }
-        });
-    }
-
-    function calculateFXSimulation() {
-        if (!fxData) return;
-        const yenAmount = parseFloat(document.getElementById('invest-amount').value);
-        if (isNaN(yenAmount) || yenAmount <= 0) {
-            alert("有効な金額を入力してください");
-            return;
-        }
-
-        const dollars = yenAmount / fxData.currentRate;
-        const futureRate = fxData.prediction[fxData.prediction.length - 1];
-        const futureYen = dollars * futureRate;
-        const profit = futureYen - yenAmount;
-
-        document.getElementById('sim-result-amount').textContent = `¥${Math.round(futureYen).toLocaleString()}`;
-        const profitElem = document.getElementById('sim-result-profit');
-        profitElem.textContent = `${profit >= 0 ? '+' : ''}¥${Math.round(profit).toLocaleString()}`;
-        profitElem.className = `text-2xl font-bold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`;
-    }
-    // ▲ FX関連ここまで ▲
-
-    // ▼ 取引リストの描画処理 ▼
     function renderTransactionList(transactions) {
         const tbody = document.getElementById('transaction-list-body');
         tbody.innerHTML = '';
@@ -514,35 +437,6 @@
             `;
             tbody.appendChild(tr);
         });
-    }
-
-    async function updateDashboard() {
-        try {
-            const txResponse = await fetch('/api/transactions?limit=100'); 
-            const transactions = await txResponse.json();
-            renderTransactionList(transactions);
-
-            const now = new Date();
-            const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-            const income = transactions.filter(t => t.type === 'INCOME' && t.date.startsWith(thisMonth)).reduce((sum, t) => sum + t.amount, 0);
-            const expense = transactions.filter(t => t.type === 'EXPENSE' && t.date.startsWith(thisMonth)).reduce((sum, t) => sum + t.amount, 0);
-            const assetResponse = await fetch('/api/portfolio/assets');
-            const assets = await assetResponse.json();
-            const portfolioValue = assets.reduce((sum, a) => sum + a.currentValue, 0);
-            const totalCash = transactions.reduce((sum, t) => sum + (t.type === 'INCOME' ? t.amount : -t.amount), 0);
-            const totalAssets = totalCash + portfolioValue;
-
-            document.getElementById('total-assets').textContent = `¥${Math.round(totalAssets).toLocaleString()}`;
-            document.getElementById('monthly-income').textContent = `¥${Math.round(income).toLocaleString()}`;
-            document.getElementById('monthly-expense').textContent = `¥${Math.round(expense).toLocaleString()}`;
-            const savingsRate = income > 0 ? ((income - expense) / income * 100).toFixed(1) : 0;
-            document.getElementById('savings-rate').textContent = `${savingsRate}%`;
-
-            const monthlyResponse = await fetch('/api/transactions/monthly-summary');
-            if(monthlyResponse.ok) renderBarChart(await monthlyResponse.json());
-            updatePieChartByPeriod('this_month');
-
-        } catch (error) { console.error("Dashboard update error:", error); }
     }
 
     function renderBarChart(data) {
@@ -596,31 +490,193 @@
         } catch(e) {}
     }
 
+    // ▼ 修正した updatePrediction ▼
     async function updatePrediction() {
+        // 1. 予測データを取得
         const response = await fetch('/api/transactions/predict?monthsToPredict=12');
         if (!response.ok) return;
         const result = await response.json();
+
+        // 2. 目標データを取得 (目標ラインを描画するため)
+        let goalPoints = [];
+        let hasGoal = false;
+        try {
+            const goalResponse = await fetch('/api/goals');
+            if (goalResponse.ok) {
+                const goals = await goalResponse.json();
+                const targetGoal = goals.find(g => g.targetAmount > 0);
+                
+                if (targetGoal) {
+                    hasGoal = true;
+                    // 目標ラインのデータを生成 (現在資産から目標金額へ向かう直線)
+                    const startAmount = result.projectionPoints[0]; // 現在の資産
+                    const targetAmount = targetGoal.targetAmount;
+                    const months = result.projectionPoints.length;
+                    
+                    for (let i = 0; i < months; i++) {
+                        const val = startAmount + ((targetAmount - startAmount) * (i / (months - 1)));
+                        goalPoints.push(val);
+                    }
+                }
+            }
+        } catch (e) { console.error(e); }
+
         document.getElementById('prediction-feedback-main').textContent = result.feedback;
         const adviceElement = document.getElementById('prediction-advice');
-        if (result.shortfallAmount > 0) adviceElement.textContent = `目標達成のために、毎月の純利益をあと ¥${Math.round(result.shortfallAmount).toLocaleString()} 増やすことを推奨します。`;
-        else if (result.isAchievable) adviceElement.textContent = "このペースで続ければ目標達成可能です。";
-        else adviceElement.textContent = "収支の見直しが必要です。";
         
+        if (result.shortfallAmount > 0) {
+            adviceElement.textContent = `目標達成のために、毎月の純利益をあと ¥${Math.round(result.shortfallAmount).toLocaleString()} 増やすことを推奨します。`;
+        } else if (result.isAchievable) {
+            adviceElement.textContent = "このペースで続ければ目標達成可能です。";
+        } else {
+            adviceElement.textContent = "収支の見直しが必要です。";
+        }
+
         const ctx = document.getElementById('predictionChart').getContext('2d');
         if (predictionChartInstance) predictionChartInstance.destroy();
-        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-        gradient.addColorStop(0, 'rgba(168, 85, 247, 0.4)'); gradient.addColorStop(1, 'rgba(168, 85, 247, 0)');
+
+        const labels = Array.from({length: 13}, (_, i) => i + "ヶ月後");
+        
+        const gradientPred = ctx.createLinearGradient(0, 0, 0, 300);
+        gradientPred.addColorStop(0, 'rgba(168, 85, 247, 0.4)');
+        gradientPred.addColorStop(1, 'rgba(168, 85, 247, 0)');
+
+        const datasets = [];
+
+        // ■ データセット1: AI予測 (点線)
+        datasets.push({
+            label: 'AI予測推移',
+            data: result.projectionPoints,
+            borderColor: '#a855f7', 
+            backgroundColor: gradientPred,
+            borderWidth: 2,
+            borderDash: [5, 5], // 点線化
+            pointBackgroundColor: '#1a2333',
+            pointBorderColor: '#d8b4fe',
+            pointRadius: 4,
+            fill: true,
+            tension: 0.4
+        });
+
+        // ■ データセット2: 目標ライン (実線・ギャップ表示)
+        if (hasGoal) {
+            datasets.push({
+                label: '目標ライン',
+                data: goalPoints,
+                borderColor: '#fbbf24', 
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: {
+                    target: 0, 
+                    above: 'rgba(251, 191, 36, 0.1)', 
+                    below: 'rgba(52, 211, 153, 0.1)' 
+                },
+                tension: 0
+            });
+        }
+
         predictionChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: Array.from({length: 13}, (_, i) => i + "ヶ月後"),
-                datasets: [{ label: '資産予測', data: result.projectionPoints, borderColor: '#a855f7', backgroundColor: gradient, borderWidth: 2, pointBackgroundColor: '#1a2333', fill: true, tension: 0.4 }]
+                labels: labels,
+                datasets: datasets
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af' } }, x: { display: false } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, labels: { color: '#9ca3af' } },
+                    tooltip: {
+                        mode: 'index', intersect: false,
+                        backgroundColor: 'rgba(26, 35, 51, 0.95)',
+                        titleColor: '#fff',
+                        bodyFont: { size: 13 },
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        callbacks: { label: (c) => ` ${c.dataset.label}: ¥` + Math.round(c.raw).toLocaleString() }
+                    },
+                    filler: { propagate: false }
+                },
+                scales: {
+                    y: { 
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' }, 
+                        ticks: { 
+                            color: '#9ca3af', 
+                            callback: function(value) {
+                                if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(1) + '億円';
+                                if (Math.abs(value) >= 10000) return (value / 10000).toFixed(0) + '万円';
+                                return value.toLocaleString() + '円';
+                            }
+                        } 
+                    },
+                    x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
+                }
+            }
         });
     }
 
-    // ▼▼▼ 編集・削除機能 ▼▼▼
+    // FX関連
+    async function fetchFXData() {
+        try {
+            const response = await fetch('/api/fx/analysis');
+            if (!response.ok) throw new Error("API Error");
+            fxData = await response.json();
+            renderAnalysis(fxData);
+            renderFXChart(fxData);
+        } catch (error) { console.error("FX Data fetch error:", error); }
+    }
+
+    function renderAnalysis(data) {
+        document.getElementById('ai-loading').classList.add('hidden');
+        document.getElementById('ai-result').classList.remove('hidden');
+        document.getElementById('current-rate').textContent = `¥${data.currentRate.toFixed(2)}`;
+        document.getElementById('ai-reason').textContent = data.reason;
+        document.getElementById('risk-percentage').textContent = `±${data.riskPercentage.toFixed(1)}%`;
+        const badge = document.getElementById('recommendation-badge');
+        if (data.recommendation === 'BUY') {
+            badge.textContent = '買い推奨 (BUY)'; badge.className = 'inline-block rounded-full bg-accent-buy/20 text-accent-buy px-4 py-1 text-xl font-bold';
+        } else if (data.recommendation === 'SELL') {
+            badge.textContent = '売り推奨 (SELL)'; badge.className = 'inline-block rounded-full bg-accent-sell/20 text-accent-sell px-4 py-1 text-xl font-bold';
+        } else {
+            badge.textContent = '様子見 (STAY)'; badge.className = 'inline-block rounded-full bg-accent-stay/20 text-accent-stay px-4 py-1 text-xl font-bold';
+        }
+    }
+
+    function renderFXChart(data) {
+        const ctx = document.getElementById('fxChart').getContext('2d');
+        if (fxChartInstance) fxChartInstance.destroy();
+        const historyLength = data.history.length;
+        const totalLabels = Array.from({length: historyLength + data.prediction.length}, (_, i) => i < historyLength ? `${i-historyLength}日前` : `${i-historyLength+1}日後`);
+        fxChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: totalLabels,
+                datasets: [{
+                    label: 'USD/JPY レート',
+                    data: [...data.history, ...data.prediction],
+                    borderColor: (ctx) => ctx.p0DataIndex < historyLength - 1 ? '#3b82f6' : '#a855f7',
+                    segment: { borderDash: (ctx) => ctx.p0DataIndex >= historyLength - 1 ? [6, 6] : undefined },
+                    borderWidth: 2, pointRadius: 0, tension: 0.1
+                }]
+            },
+            options: { animation: { duration: 0 }, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af' } } } }
+        });
+    }
+
+    function calculateFXSimulation() {
+        if (!fxData) return;
+        const yenAmount = parseFloat(document.getElementById('invest-amount').value);
+        if (isNaN(yenAmount) || yenAmount <= 0) { alert("有効な金額を入力してください"); return; }
+        const dollars = yenAmount / fxData.currentRate;
+        const futureYen = dollars * fxData.prediction[fxData.prediction.length - 1];
+        const profit = futureYen - yenAmount;
+        document.getElementById('sim-result-amount').textContent = `¥${Math.round(futureYen).toLocaleString()}`;
+        const profitElem = document.getElementById('sim-result-profit');
+        profitElem.textContent = `${profit >= 0 ? '+' : ''}¥${Math.round(profit).toLocaleString()}`;
+        profitElem.className = `text-2xl font-bold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`;
+    }
+
+    // 編集・削除
     function openEditModal(tx) {
         document.getElementById('modal-title').textContent = "取引を編集";
         document.getElementById('edit-id').value = tx.id;
@@ -680,14 +736,11 @@
             goalId: goalId, 
             isExtraordinary: document.getElementById('isExtraordinary').checked
         };
-        let url = '/api/transactions';
-        let method = 'POST';
+        let url = '/api/transactions'; let method = 'POST';
         if (editId) { url = `/api/transactions/${editId}`; method = 'PUT'; }
         await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
         closeModal();
-        updateDashboard();
-        updatePrediction();
-        loadGoals();
+        updateDashboard(); updatePrediction(); loadGoals();
     });
 
     function handleTypeChange(type) {
