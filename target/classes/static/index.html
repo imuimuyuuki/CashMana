@@ -371,6 +371,7 @@
         updatePrediction();
         setupPieChartListener();
         
+        // FXデータ取得開始
         fetchFXData();
         fxIntervalId = setInterval(fetchFXData, 3000);
     });
@@ -490,129 +491,128 @@
         } catch(e) {}
     }
 
-    // ▼ 修正した updatePrediction ▼
+    // ▼▼▼ AI資産予測シミュレーション (今回の修正版) ▼▼▼
     async function updatePrediction() {
-        // 1. 予測データを取得
-        const response = await fetch('/api/transactions/predict?monthsToPredict=12');
-        if (!response.ok) return;
-        const result = await response.json();
-
-        // 2. 目標データを取得 (目標ラインを描画するため)
-        let goalPoints = [];
-        let hasGoal = false;
         try {
-            const goalResponse = await fetch('/api/goals');
-            if (goalResponse.ok) {
-                const goals = await goalResponse.json();
-                const targetGoal = goals.find(g => g.targetAmount > 0);
+            const predResponse = await fetch('/api/transactions/predict?monthsToPredict=12');
+            if (!predResponse.ok) return;
+            const predResult = await predResponse.json();
+
+            // 過去6ヶ月の実績を取得して、過去の資産推移を逆算
+            const histResponse = await fetch('/api/transactions/monthly-summary');
+            let historyPoints = [];
+            let historyLabels = [];
+            
+            if (histResponse.ok) {
+                const monthlyData = await histResponse.json(); 
+                let currentBalance = predResult.initialBalance;
                 
-                if (targetGoal) {
-                    hasGoal = true;
-                    // 目標ラインのデータを生成 (現在資産から目標金額へ向かう直線)
-                    const startAmount = result.projectionPoints[0]; // 現在の資産
-                    const targetAmount = targetGoal.targetAmount;
-                    const months = result.projectionPoints.length;
-                    
-                    for (let i = 0; i < months; i++) {
-                        const val = startAmount + ((targetAmount - startAmount) * (i / (months - 1)));
-                        goalPoints.push(val);
+                historyPoints.unshift(currentBalance);
+                historyLabels.unshift("現在");
+
+                const loopCount = Math.min(monthlyData.length, 6);
+                for (let i = 0; i < loopCount; i++) {
+                    const m = monthlyData[i];
+                    currentBalance = currentBalance - (m.totalIncome - m.totalExpense);
+                    historyPoints.unshift(currentBalance);
+                    historyLabels.unshift(`${i + 1}ヶ月前`);
+                }
+            }
+
+            // グラフデータの整形
+            const futureLabels = Array.from({length: predResult.projectionPoints.length - 1}, (_, i) => `${i + 1}ヶ月後`);
+            const futurePointsRaw = predResult.projectionPoints.slice(1);
+            const totalLabels = [...historyLabels, ...futureLabels];
+
+            // データセット1: 実績 (過去〜現在)
+            const datasetHistory = [
+                ...historyPoints, 
+                ...new Array(futurePointsRaw.length).fill(null)
+            ];
+
+            // データセット2: 予測 (現在〜未来)
+            const datasetFuture = [
+                ...new Array(historyPoints.length - 1).fill(null),
+                historyPoints[historyPoints.length - 1], // 現在地点をつなぐ
+                ...futurePointsRaw
+            ];
+
+            // フィードバック更新
+            document.getElementById('prediction-feedback-main').textContent = predResult.feedback;
+            const adviceElement = document.getElementById('prediction-advice');
+            if (predResult.shortfallAmount > 0) {
+                adviceElement.textContent = `目標達成には、毎月あと ¥${Math.round(predResult.shortfallAmount).toLocaleString()} のプラスが必要です。`;
+            } else if (predResult.isAchievable) {
+                adviceElement.textContent = "順調です。このペースなら目標を達成できる見込みです。";
+            } else {
+                adviceElement.textContent = "現在の収支状況では資産が減少傾向です。固定費の見直しを推奨します。";
+            }
+
+            // チャート描画
+            const ctx = document.getElementById('predictionChart').getContext('2d');
+            if (predictionChartInstance) predictionChartInstance.destroy();
+
+            predictionChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: totalLabels,
+                    datasets: [
+                        {
+                            label: '実績 (過去6ヶ月)',
+                            data: datasetHistory,
+                            borderColor: '#3b82f6', // 実績: 青色 (実線)
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'AI予測 (今後1年)',
+                            data: datasetFuture,
+                            borderColor: '#ef4444', // 予測: 赤色 (点線)
+                            borderWidth: 3,
+                            borderDash: [6, 6], // 点線化
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#ef4444',
+                            tension: 0.4,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: true, labels: { color: '#9ca3af' } },
+                        tooltip: {
+                            backgroundColor: 'rgba(26, 35, 51, 0.95)',
+                            titleColor: '#fff',
+                            bodyColor: '#cbd5e1',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            callbacks: { label: (c) => ` ${c.dataset.label}: ¥` + Math.round(c.raw).toLocaleString() }
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }, 
+                            ticks: { 
+                                color: '#9ca3af',
+                                callback: function(value) {
+                                    if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(1) + '億円';
+                                    if (Math.abs(value) >= 10000) return (value / 10000).toFixed(0) + '万円';
+                                    return value.toLocaleString();
+                                }
+                            } 
+                        },
+                        x: { grid: { display: false }, ticks: { color: '#9ca3af', maxTicksLimit: 8 } }
                     }
                 }
-            }
-        } catch (e) { console.error(e); }
-
-        document.getElementById('prediction-feedback-main').textContent = result.feedback;
-        const adviceElement = document.getElementById('prediction-advice');
-        
-        if (result.shortfallAmount > 0) {
-            adviceElement.textContent = `目標達成のために、毎月の純利益をあと ¥${Math.round(result.shortfallAmount).toLocaleString()} 増やすことを推奨します。`;
-        } else if (result.isAchievable) {
-            adviceElement.textContent = "このペースで続ければ目標達成可能です。";
-        } else {
-            adviceElement.textContent = "収支の見直しが必要です。";
-        }
-
-        const ctx = document.getElementById('predictionChart').getContext('2d');
-        if (predictionChartInstance) predictionChartInstance.destroy();
-
-        const labels = Array.from({length: 13}, (_, i) => i + "ヶ月後");
-        
-        const gradientPred = ctx.createLinearGradient(0, 0, 0, 300);
-        gradientPred.addColorStop(0, 'rgba(168, 85, 247, 0.4)');
-        gradientPred.addColorStop(1, 'rgba(168, 85, 247, 0)');
-
-        const datasets = [];
-
-        // ■ データセット1: AI予測 (点線)
-        datasets.push({
-            label: 'AI予測推移',
-            data: result.projectionPoints,
-            borderColor: '#a855f7', 
-            backgroundColor: gradientPred,
-            borderWidth: 2,
-            borderDash: [5, 5], // 点線化
-            pointBackgroundColor: '#1a2333',
-            pointBorderColor: '#d8b4fe',
-            pointRadius: 4,
-            fill: true,
-            tension: 0.4
-        });
-
-        // ■ データセット2: 目標ライン (実線・ギャップ表示)
-        if (hasGoal) {
-            datasets.push({
-                label: '目標ライン',
-                data: goalPoints,
-                borderColor: '#fbbf24', 
-                borderWidth: 2,
-                pointRadius: 0,
-                fill: {
-                    target: 0, 
-                    above: 'rgba(251, 191, 36, 0.1)', 
-                    below: 'rgba(52, 211, 153, 0.1)' 
-                },
-                tension: 0
             });
-        }
-
-        predictionChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: datasets
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: true, labels: { color: '#9ca3af' } },
-                    tooltip: {
-                        mode: 'index', intersect: false,
-                        backgroundColor: 'rgba(26, 35, 51, 0.95)',
-                        titleColor: '#fff',
-                        bodyFont: { size: 13 },
-                        borderColor: 'rgba(255,255,255,0.1)',
-                        borderWidth: 1,
-                        callbacks: { label: (c) => ` ${c.dataset.label}: ¥` + Math.round(c.raw).toLocaleString() }
-                    },
-                    filler: { propagate: false }
-                },
-                scales: {
-                    y: { 
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' }, 
-                        ticks: { 
-                            color: '#9ca3af', 
-                            callback: function(value) {
-                                if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(1) + '億円';
-                                if (Math.abs(value) >= 10000) return (value / 10000).toFixed(0) + '万円';
-                                return value.toLocaleString() + '円';
-                            }
-                        } 
-                    },
-                    x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
-                }
-            }
-        });
+        } catch (e) { console.error("Prediction chart error:", e); }
     }
 
     // FX関連
