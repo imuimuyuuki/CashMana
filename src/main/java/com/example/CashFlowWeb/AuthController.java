@@ -1,24 +1,21 @@
 package com.example.CashFlowWeb;
 
-import org.springframework.beans.factory.annotation.Autowired; // 依存性注入のために追加
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder; // パスワードハッシュ化のために追加
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-    
-    // 以前の簡易ログインロジックは削除 (Spring Securityが担当するため)
 
     // --- 依存関係の定義 ---
 
     private final UserDAO userDAO;
-    private final PasswordEncoder passwordEncoder; // SecurityConfigで定義したBean
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * コンストラクタ (依存性の注入)
-     * SpringがSecurityConfigで定義したPasswordEncoderを自動的に注入(DI)します。
      */
     @Autowired
     public AuthController(PasswordEncoder passwordEncoder) {
@@ -27,50 +24,73 @@ public class AuthController {
     }
 
     // --- 内部で使用するリクエスト用クラス ---
-    
-    /**
-     * 登録リクエストのJSONを受け取るためのインナークラス
-     * (register.htmlのJavaScriptから送信されるJSONに対応)
-     */
+
     private static class RegisterRequest {
         private String username;
         private String password;
 
-        // GetterとSetter (JSONデシリアライズに必須)
-        public String getUsername() { return username; }
-        public String getPassword() { return password; }
-        public void setUsername(String username) { this.username = username; }
-        public void setPassword(String password) { this.password = password; }
+        public String getUsername() {
+            return username;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
     }
 
     // --- APIエンドポイント ---
 
     /**
      * ユーザー登録API (POST /api/auth/register)
-     * register.htmlから呼び出されます。
      */
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegisterRequest request) {
-        
+
+        String username = request.getUsername();
+        String password = request.getPassword();
+
         // 1. ユーザー名が既に使われていないかチェック
-        if (userDAO.findByUsername(request.getUsername()) != null) {
+        if (userDAO.findByUsername(username) != null) {
             return ResponseEntity.status(400).body("このユーザー名は既に使用されています。");
         }
-        
-        // 2. パスワードが空でないかチェック (簡易的)
-        if (request.getPassword() == null || request.getPassword().isEmpty()) {
+
+        // 2. パスワードの入力チェック (空っぽかどうか)
+        if (password == null || password.isEmpty()) {
             return ResponseEntity.status(400).body("パスワードが必要です。");
         }
 
-        // 3. パスワードをハッシュ化 (【重要】)
-        String hashedPassword = passwordEncoder.encode(request.getPassword());
+        // ▼▼▼▼▼▼▼▼▼ ここから追加したセキュリティ強化部分 ▼▼▼▼▼▼▼▼▼
 
-        // 4. 新しいUserオブジェクトを作成
-        // (パスワードにはハッシュ化済みのものを設定)
-        User newUser = new User(request.getUsername(), hashedPassword);
+        // 3. パスワードの文字数チェック (8文字未満ならNG)
+        if (password.length() < 8) {
+            return ResponseEntity.status(400).body("パスワードは8文字以上で設定してください。");
+        }
+
+        // 4. 英数字混在チェック (正規表現)
+        // (?=.*[0-9]) : 数字が1つ以上あるか
+        // (?=.*[a-zA-Z]) : 英字が1つ以上あるか
+        if (!password.matches("^(?=.*[0-9])(?=.*[a-zA-Z]).+$")) {
+            return ResponseEntity.status(400).body("パスワードには英字と数字の両方を含めてください。");
+        }
+
+        // ▲▲▲▲▲▲▲▲▲ ここまで追加 ▲▲▲▲▲▲▲▲▲
+
+        // 5. パスワードをハッシュ化 (【重要】)
+        String hashedPassword = passwordEncoder.encode(password);
+
+        // 6. 新しいUserオブジェクトを作成
+        User newUser = new User(username, hashedPassword);
         newUser.setRole("USER"); // デフォルトロール
 
-        // 5. データベースに保存
+        // 7. データベースに保存
         boolean success = userDAO.saveUser(newUser);
 
         if (success) {
@@ -79,13 +99,4 @@ public class AuthController {
             return ResponseEntity.status(500).body("サーバーエラーにより登録に失敗しました。");
         }
     }
-
-    /*
-     * 補足: /api/auth/login エンドポイントについて
-     * SecurityConfig.java で .formLogin() を使用しているため、
-     * ログイン処理 (POST /login) はSpring Securityが自動的に行います。
-     * したがって、AuthController.java に /login API を手動で実装する必要はありません。
-     * Spring Securityがログイン処理を行うには、次のステップで「UserDetailsService」の
-     * 実装が必要になります。
-     */
 }
