@@ -2,24 +2,20 @@ package com.example.CashFlowWeb;
 
 import java.util.List;
 
-/**
- * 予測APIの結果を保持するモデルクラス。
- * 行動示唆フィードバックに対応するデータを追加済み。
- */
 public class PredictionResult {
-    // 既存フィールド
     private double averageMonthlyProfit;
     private int estimatedMonths;
     private String feedback;
     private double initialBalance;
     private List<Double> projectionPoints;
-    
-    // ▼▼▼ 新規追加フィールド (これがないとエラーになります) ▼▼▼
-    private double shortfallAmount;   // 目標までの不足額（月あたり）
-    private int delayMonths;          // 遅延月数
-    private boolean isAchievable;     // 期限内に達成可能か
 
-    // ▼▼▼ 8つの引数を受け取るコンストラクタ (これがないとエラーになります) ▼▼▼
+    // ▼ 追加したフィールド
+    private double shortfallAmount;   // 不足額
+    private int delayMonths;          // 遅れ月数
+    private boolean isAchievable;     // 達成可能かどうか
+
+    public PredictionResult() {}
+
     public PredictionResult(double averageMonthlyProfit, int estimatedMonths, String feedback, 
                             double initialBalance, List<Double> projectionPoints,
                             double shortfallAmount, int delayMonths, boolean isAchievable) {
@@ -33,8 +29,6 @@ public class PredictionResult {
         this.isAchievable = isAchievable;
     }
 
-    public PredictionResult() {}
-
     // Getters
     public double getAverageMonthlyProfit() { return averageMonthlyProfit; }
     public int getEstimatedMonths() { return estimatedMonths; }
@@ -42,7 +36,6 @@ public class PredictionResult {
     public double getInitialBalance() { return initialBalance; }
     public List<Double> getProjectionPoints() { return projectionPoints; }
     
-    // 新規Getter
     public double getShortfallAmount() { return shortfallAmount; }
     public int getDelayMonths() { return delayMonths; }
     public boolean getIsAchievable() { return isAchievable; }
