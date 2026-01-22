@@ -16,6 +16,7 @@ public class PredictionResult {
 
     public PredictionResult() {}
 
+    // 全フィールドを受け取るコンストラクタ
     public PredictionResult(double averageMonthlyProfit, int estimatedMonths, String feedback, 
                             double initialBalance, List<Double> projectionPoints,
                             double shortfallAmount, int delayMonths, boolean isAchievable) {
