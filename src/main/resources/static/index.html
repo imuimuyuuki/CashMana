@@ -109,13 +109,13 @@
 
         <div class="mb-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
             <div class="col-span-2 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
-                <h3 class="mb-6 text-lg font-bold text-white">資産推移 (過去12ヶ月)</h3>
+                <h3 class="mb-6 text-lg font-bold text-white">資産推移 (過去6ヶ月)</h3>
                 <div class="h-[300px]">
                     <canvas id="balanceChart"></canvas>
                 </div>
             </div>
             
-             <div class="rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+            <div class="rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
                 <div class="mb-6 flex items-center justify-between">
                     <h3 class="text-lg font-bold text-white">支出内訳</h3>
                     <select id="pie-chart-period" class="rounded-lg border-white/10 bg-[#101922] text-sm text-gray-300 focus:border-primary focus:ring-primary">
@@ -123,11 +123,6 @@
                         <option value="last_month">先月</option>
                     </select>
                 </div>
-                <div class="relative flex h-[300px] items-center justify-center">
-                    <canvas id="expenseChart"></canvas>
-                </div>
-            </div>
-        </div>
                 <div class="relative flex h-[300px] items-center justify-center">
                     <canvas id="expenseChart"></canvas>
                 </div>
