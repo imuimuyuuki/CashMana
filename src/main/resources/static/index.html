@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html class="dark" lang="ja">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>FutureFlow ダッシュボード</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .modal { backdrop-filter: blur(5px); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#258cf4",
+                        "background-dark": "#101922",
+                        "accent-buy": "#34d399",
+                        "accent-sell": "#f87171",
+                        "accent-stay": "#fbbf24"
+                    },
+                    fontFamily: { "display": ["Inter", "sans-serif"] },
+                }
+            }
+        }
+        Chart.defaults.color = '#9ca3af';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+    </script>
+</head>
+<body class="bg-[#101922] text-[#E0E0E0]">
+<div class="flex min-h-screen">
+    <aside class="flex w-64 flex-col border-r border-white/10 bg-[#111418] p-4">
+        <div class="flex items-center gap-3 p-2">
+            <span class="material-symbols-outlined text-3xl text-primary">account_balance_wallet</span>
+            <span class="font-display text-xl font-bold tracking-tight text-white">FutureFlow</span>
+        </div>
+        <nav class="mt-8 flex flex-1 flex-col gap-2">
+            <a href="index.html" class="flex items-center gap-3 rounded-lg bg-primary/10 px-4 py-3 text-primary transition-colors hover:bg-primary/20">
+                <span class="material-symbols-outlined">dashboard</span>
+                <span class="font-medium">ダッシュボード</span>
+            </a>
+            <a href="categories.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+                <span class="material-symbols-outlined">category</span>
+                <span class="font-medium">カテゴリ管理</span>
+            </a>
+            <a href="budgets.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+                <span class="material-symbols-outlined">savings</span>
+                <span class="font-medium">予算管理</span>
+            </a>
+            <a href="goals.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+                <span class="material-symbols-outlined">flag</span>
+                <span class="font-medium">目標設定</span>
+            </a>
+            <a href="portfolio.html" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+                <span class="material-symbols-outlined">show_chart</span>
+                <span class="font-medium">ポートフォリオ</span>
+            </a>
+        </nav>
+        <div class="mt-auto border-t border-white/10 pt-4">
+            <a href="#" onclick="logout()" class="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-red-500/10 hover:text-red-400">
+                <span class="material-symbols-outlined">logout</span>
+                <span class="font-medium">ログアウト</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto bg-[#101922] p-8">
+        <header class="mb-8 flex items-center justify-between">
+            <div>
+                <h1 class="font-display text-3xl font-bold text-white">資産ダッシュボード</h1>
+                <p class="mt-1 text-gray-400">現在の財務状況と予測分析</p>
+            </div>
+            <button onclick="openModal()" class="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-medium text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-primary/30">
+                <span class="material-symbols-outlined">add</span>
+                取引を追加
+            </button>
+        </header>
+
+        <div class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+                <p class="text-sm font-medium text-gray-400">総資産</p>
+                <p id="total-assets" class="mt-2 text-3xl font-bold text-white">¥0</p>
+                <div class="mt-2 flex items-center text-sm text-green-400">
+                    <span class="material-symbols-outlined mr-1 text-base">trending_up</span>
+                    <span>現在の状況</span>
+                </div>
+            </div>
+            <div class="rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+                <p class="text-sm font-medium text-gray-400">今月の収入</p>
+                <p id="monthly-income" class="mt-2 text-3xl font-bold text-white">¥0</p>
+            </div>
+            <div class="rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+                <p class="text-sm font-medium text-gray-400">今月の支出</p>
+                <p id="monthly-expense" class="mt-2 text-3xl font-bold text-white">¥0</p>
+            </div>
+            <div class="rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+                <p class="text-sm font-medium text-gray-400">貯蓄率</p>
+                <p id="savings-rate" class="mt-2 text-3xl font-bold text-white">0%</p>
+            </div>
+        </div>
+
+        <div class="mb-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
+            <div class="col-span-2 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+                <h3 class="mb-6 text-lg font-bold text-white">資産推移 (過去12ヶ月)</h3>
+                <div class="h-[300px]">
+                    <canvas id="balanceChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+                <div class="mb-6 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-white">支出内訳</h3>
+                    <select id="pie-chart-period" class="rounded-lg border-white/10 bg-[#101922] text-sm text-gray-300 focus:border-primary focus:ring-primary">
+                        <option value="this_month">今月</option>
+                        <option value="last_month">先月</option>
+                    </select>
+                </div>
+                <div class="relative flex h-[300px] items-center justify-center">
+                    <canvas id="expenseChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-8 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+            <h3 class="mb-4 text-lg font-bold text-white flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">receipt_long</span>
+                最近の取引履歴
+            </h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-gray-400">
+                    <thead class="border-b border-white/10 bg-white/5 text-xs uppercase text-gray-400">
+                        <tr>
+                            <th class="px-6 py-3">日付</th>
+                            <th class="px-6 py-3">カテゴリ</th>
+                            <th class="px-6 py-3">内容</th>
+                            <th class="px-6 py-3 text-right">金額</th>
+                            <th class="px-6 py-3 text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transaction-list-body" class="divide-y divide-white/5">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mb-8 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+            <h3 class="mb-4 text-lg font-bold text-white flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">timeline</span>
+                AI資産予測シミュレーション
+            </h3>
+            
+            <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                <div class="lg:col-span-2">
+                    <div class="h-[300px] w-full">
+                        <canvas id="predictionChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-1 flex flex-col justify-center rounded-xl bg-[#111822] p-6 border border-white/5">
+                    <div class="mb-4">
+                        <span class="text-xs font-bold uppercase tracking-wider text-gray-500">AI診断レポート</span>
+                        <div class="mt-2 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-3xl text-primary">analytics</span>
+                            <span class="text-xl font-bold text-white">将来の見通し</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <p id="prediction-feedback-main" class="text-base font-medium text-white leading-relaxed">
+                            データを分析中...
+                        </p>
+                    </div>
+
+                    <div class="rounded-lg bg-primary/10 p-4 border border-primary/20">
+                        <div class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-primary mt-0.5">lightbulb</span>
+                            <div>
+                                <p class="text-sm font-bold text-primary mb-1">アクション提案</p>
+                                <p id="prediction-advice" class="text-sm text-gray-300">
+                                    毎月の収支バランスを維持しましょう。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="border-t border-white/10 pt-8 mt-8">
+            <h2 class="mb-6 text-2xl font-bold text-white flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">currency_exchange</span>
+                <span class="flex items-center gap-2">
+                    AI FX / 外貨運用シミュレーション
+                    <span class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded-full animate-pulse">LIVE</span>
+                </span>
+            </h2>
+
+            <div class="mb-8 rounded-xl bg-gradient-to-r from-[#1a2333] to-[#111822] p-6 border border-white/10 shadow-lg">
+                <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">info</span>
+                    この機能について（AI分析の仕組み）
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-300 leading-relaxed">
+                    <div>
+                        <p class="font-bold text-gray-100 mb-1">📊 どんなデータを使っているの？</p>
+                        <p class="mb-3">
+                            実際の市場為替レート（USD/JPY）をリアルタイムで取得し、短期・中期の移動平均線、およびボラティリティ（変動率）のデータを分析しています。
+                        </p>
+                        <p class="font-bold text-gray-100 mb-1">🤖 どのAIを使用しているの？</p>
+                        <p>
+                            独自の<span class="text-primary font-bold">「時系列トレンド解析アルゴリズム」</span>を使用しています。過去のチャートパターンから将来の価格変動確率を統計的に算出します。
+                        </p>
+                    </div>
+                    <div>
+                        <p class="font-bold text-gray-100 mb-1">💡 なぜこの判断になるの？</p>
+                        <p>
+                            現在のレートがトレンドからどれくらい乖離しているか（買われすぎ・売られすぎ）を計算し、反発するかトレンドが継続するかを判定しています。
+                        </p>
+                        <ul class="mt-2 space-y-1 list-disc list-inside text-gray-400">
+                            <li><span class="text-accent-buy font-bold">BUY</span>: 売られすぎゾーン。反発上昇の可能性が高い。</li>
+                            <li><span class="text-accent-sell font-bold">SELL</span>: 買われすぎゾーン。下落調整のリスクが高い。</li>
+                            <li><span class="text-accent-stay font-bold">STAY</span>: 方向感が不明確。リスク回避を推奨。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div class="col-span-1 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+                    <h3 class="mb-4 text-lg font-bold text-white flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">psychology</span>
+                        AI推奨アクション
+                    </h3>
+                    
+                    <div id="ai-loading" class="text-center py-10">
+                        <span class="material-symbols-outlined animate-spin text-4xl text-primary">sync</span>
+                        <p class="mt-2 text-sm text-gray-400">市場データを分析中...</p>
+                    </div>
+
+                    <div id="ai-result" class="hidden animate-fade-in">
+                        <div class="mb-4 text-center">
+                            <span id="recommendation-badge" class="inline-block rounded-full px-4 py-1 text-xl font-bold"></span>
+                        </div>
+                        <div class="mb-6 text-center">
+                            <p class="text-sm text-gray-400">現在レート (USD/JPY)</p>
+                            <p id="current-rate" class="text-4xl font-bold text-white transition-all duration-300">---.--</p>
+                        </div>
+                        <div class="mb-4 rounded-lg bg-[#101922] p-4">
+                            <p class="text-xs font-bold text-gray-500 mb-1">AIの分析根拠:</p>
+                            <p id="ai-reason" class="text-sm text-gray-300 leading-relaxed"></p>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-gray-400">
+                            <span>予測リスク変動幅:</span>
+                            <span id="risk-percentage" class="font-bold text-red-400"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-span-1 lg:col-span-2 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+                    <h3 class="mb-4 text-lg font-bold text-white">トレンド予測チャート (リアルタイム更新)</h3>
+                    <div class="relative h-[300px] w-full">
+                        <canvas id="fxChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="col-span-1 lg:col-span-3 rounded-xl border border-white/5 bg-[#1a2333] p-6 shadow-xl">
+                    <h3 class="mb-4 text-lg font-bold text-white flex items-center gap-2">
+                        <span class="material-symbols-outlined text-green-400">calculate</span>
+                        ドル資産運用シミュレーション
+                    </h3>
+                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-gray-400">投資金額 (円)</label>
+                            <div class="flex gap-2">
+                                <input type="number" id="invest-amount" value="100000" class="w-full rounded-lg border-white/10 bg-[#101922] text-white focus:border-primary focus:ring-primary">
+                                <button onclick="calculateFXSimulation()" class="rounded-lg bg-primary px-6 py-2 font-medium text-white hover:bg-primary/90">試算</button>
+                            </div>
+                            <p class="mt-2 text-xs text-gray-500">※現在のレートでドルを購入し、1週間後に決済した場合のシミュレーション</p>
+                        </div>
+                        <div class="flex items-center justify-around rounded-lg bg-[#101922] p-4">
+                            <div class="text-center">
+                                <p class="text-xs text-gray-400">予想評価額</p>
+                                <p id="sim-result-amount" class="text-2xl font-bold text-white">---</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-xs text-gray-400">予想損益</p>
+                                <p id="sim-result-profit" class="text-2xl font-bold text-gray-500">---</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<div id="modal" class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/50 opacity-0 transition-opacity duration-300">
+    <div class="w-full max-w-md scale-95 transform rounded-2xl border border-white/10 bg-[#1a2333] p-8 shadow-2xl transition-transform duration-300">
+        <h2 id="modal-title" class="mb-6 text-2xl font-bold text-white">取引を追加</h2>
+        <form id="transaction-form" class="space-y-4">
+            <input type="hidden" id="edit-id" value="">
+            
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-400">日付</label>
+                <input type="date" id="date" required class="w-full rounded-lg border-white/10 bg-[#101922] text-white focus:border-primary focus:ring-primary">
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-400">金額</label>
+                <input type="number" id="amount" required class="w-full rounded-lg border-white/10 bg-[#101922] text-white focus:border-primary focus:ring-primary">
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-400">タイプ</label>
+                <div class="flex gap-4">
+                    <label class="flex items-center gap-2">
+                        <input type="radio" name="type" value="INCOME" class="text-primary focus:ring-primary" onclick="handleTypeChange('INCOME')">
+                        <span class="text-white">収入</span>
+                    </label>
+                    <label class="flex items-center gap-2">
+                        <input type="radio" name="type" value="EXPENSE" checked class="text-primary focus:ring-primary" onclick="handleTypeChange('EXPENSE')">
+                        <span class="text-white">支出</span>
+                    </label>
+                </div>
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-400">カテゴリ</label>
+                <select id="category" required class="w-full rounded-lg border-white/10 bg-[#101922] text-white focus:border-primary focus:ring-primary">
+                </select>
+            </div>
+            
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-400">目標への貯金（任意）</label>
+                <select id="goal-select" class="w-full rounded-lg border-white/10 bg-[#101922] text-white focus:border-primary focus:ring-primary disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed">
+                    <option value="">-- 目標を選択しない --</option>
+                </select>
+                <p id="goal-help" class="text-xs text-gray-500 mt-1 hidden">※目標への紐付けは「収入」時のみ可能です</p>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <input type="checkbox" id="isExtraordinary" class="rounded border-white/10 bg-[#101922] text-primary focus:ring-primary">
+                <label for="isExtraordinary" class="text-sm text-gray-400">臨時収支（予測から除外）</label>
+            </div>
+            <div class="flex justify-end gap-3 pt-4">
+                <button type="button" onclick="closeModal()" class="rounded-lg px-4 py-2 text-gray-400 hover:bg-white/5 hover:text-white">キャンセル</button>
+                <button type="submit" class="rounded-lg bg-primary px-6 py-2 font-medium text-white hover:bg-primary/90">保存</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let barChartInstance = null;
+    let pieChartInstance = null;
+    let predictionChartInstance = null;
+    let fxChartInstance = null; 
+    let fxData = null; 
+    let fxIntervalId = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        handleTypeChange('EXPENSE');
+        loadGoals();
+        updateDashboard();
+        updatePrediction();
+        setupPieChartListener();
+        
+        // FXデータ取得開始
+        fetchFXData();
+        fxIntervalId = setInterval(fetchFXData, 3000);
+    });
+
+    async function updateDashboard() {
+        try {
+            const txResponse = await fetch('/api/transactions?limit=100'); 
+            const transactions = await txResponse.json();
+            renderTransactionList(transactions);
+
+            const now = new Date();
+            const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const income = transactions.filter(t => t.type === 'INCOME' && t.date.startsWith(thisMonth)).reduce((sum, t) => sum + t.amount, 0);
+            const expense = transactions.filter(t => t.type === 'EXPENSE' && t.date.startsWith(thisMonth)).reduce((sum, t) => sum + t.amount, 0);
+            const assetResponse = await fetch('/api/portfolio/assets');
+            const assets = await assetResponse.json();
+            const portfolioValue = assets.reduce((sum, a) => sum + a.currentValue, 0);
+            const totalCash = transactions.reduce((sum, t) => sum + (t.type === 'INCOME' ? t.amount : -t.amount), 0);
+            const totalAssets = totalCash + portfolioValue;
+
+            document.getElementById('total-assets').textContent = `¥${Math.round(totalAssets).toLocaleString()}`;
+            document.getElementById('monthly-income').textContent = `¥${Math.round(income).toLocaleString()}`;
+            document.getElementById('monthly-expense').textContent = `¥${Math.round(expense).toLocaleString()}`;
+            const savingsRate = income > 0 ? ((income - expense) / income * 100).toFixed(1) : 0;
+            document.getElementById('savings-rate').textContent = `${savingsRate}%`;
+
+            const monthlyResponse = await fetch('/api/transactions/monthly-summary');
+            if(monthlyResponse.ok) renderBarChart(await monthlyResponse.json());
+            updatePieChartByPeriod('this_month');
+
+        } catch (error) { console.error("Dashboard update error:", error); }
+    }
+
+    function renderTransactionList(transactions) {
+        const tbody = document.getElementById('transaction-list-body');
+        tbody.innerHTML = '';
+        transactions.slice(0, 10).forEach(t => {
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-white/5 transition-colors";
+            const isIncome = t.type === 'INCOME';
+            const amountClass = isIncome ? 'text-green-400' : 'text-red-400';
+            const sign = isIncome ? '+' : '-';
+            const desc = t.goalName ? `<span class="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded ml-2">目標: ${t.goalName}</span>` : '';
+
+            tr.innerHTML = `
+                <td class="px-6 py-4">${t.date}</td>
+                <td class="px-6 py-4">
+                    <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${isIncome ? 'bg-green-400/10 text-green-400' : 'bg-red-400/10 text-red-400'}">
+                        ${t.categoryName || '未分類'}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-white">${desc}</td>
+                <td class="px-6 py-4 text-right font-bold ${amountClass}">${sign}¥${t.amount.toLocaleString()}</td>
+                <td class="px-6 py-4 text-center">
+                    <div class="flex items-center justify-center gap-2">
+                        <button onclick='openEditModal(${JSON.stringify(t)})' class="text-gray-400 hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined text-sm">edit</span>
+                        </button>
+                        <button onclick="deleteTransaction(${t.id})" class="text-gray-400 hover:text-red-400 transition-colors">
+                            <span class="material-symbols-outlined text-sm">delete</span>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderBarChart(data) {
+        const ctx = document.getElementById('balanceChart').getContext('2d');
+        if (barChartInstance) barChartInstance.destroy();
+        barChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(d => d.month),
+                datasets: [
+                    { label: '収入', data: data.map(d => d.totalIncome), backgroundColor: '#34d399', borderRadius: 4 },
+                    { label: '支出', data: data.map(d => d.totalExpense), backgroundColor: '#f87171', borderRadius: 4 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af' } } }, scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af' } }, x: { display: false } } }
+        });
+    }
+
+    function setupPieChartListener() {
+        document.getElementById('pie-chart-period').addEventListener('change', (e) => updatePieChartByPeriod(e.target.value));
+    }
+    
+    function updatePieChartByPeriod(period) {
+        const now = new Date();
+        let startDate, endDate;
+        if (period === 'this_month') {
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+        } else {
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
+            endDate = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+        }
+        updatePieChart(startDate, endDate);
+    }
+
+    async function updatePieChart(startDate, endDate) {
+        try {
+            const response = await fetch(`/api/transactions/summary?startDate=${startDate}&endDate=${endDate}&type=EXPENSE`);
+            if (!response.ok) return;
+            const data = await response.json();
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            if (pieChartInstance) pieChartInstance.destroy();
+            pieChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.categoryName),
+                    datasets: [{ data: data.map(d => d.totalAmount), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1'], borderWidth: 0 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'right', labels: { color: '#9ca3af' } } } }
+            });
+        } catch(e) {}
+    }
+
+    // ▼▼▼ AI資産予測シミュレーション (今回の修正版) ▼▼▼
+    async function updatePrediction() {
+        try {
+            const predResponse = await fetch('/api/transactions/predict?monthsToPredict=12');
+            if (!predResponse.ok) return;
+            const predResult = await predResponse.json();
+
+            // 過去6ヶ月の実績を取得して、過去の資産推移を逆算
+            const histResponse = await fetch('/api/transactions/monthly-summary');
+            let historyPoints = [];
+            let historyLabels = [];
+            
+            if (histResponse.ok) {
+                const monthlyData = await histResponse.json(); 
+                let currentBalance = predResult.initialBalance;
+                
+                historyPoints.unshift(currentBalance);
+                historyLabels.unshift("現在");
+
+                const loopCount = Math.min(monthlyData.length, 6);
+                for (let i = 0; i < loopCount; i++) {
+                    const m = monthlyData[i];
+                    currentBalance = currentBalance - (m.totalIncome - m.totalExpense);
+                    historyPoints.unshift(currentBalance);
+                    historyLabels.unshift(`${i + 1}ヶ月前`);
+                }
+            }
+
+            // グラフデータの整形
+            const futureLabels = Array.from({length: predResult.projectionPoints.length - 1}, (_, i) => `${i + 1}ヶ月後`);
+            const futurePointsRaw = predResult.projectionPoints.slice(1);
+            const totalLabels = [...historyLabels, ...futureLabels];
+
+            // データセット1: 実績 (過去〜現在)
+            const datasetHistory = [
+                ...historyPoints, 
+                ...new Array(futurePointsRaw.length).fill(null)
+            ];
+
+            // データセット2: 予測 (現在〜未来)
+            const datasetFuture = [
+                ...new Array(historyPoints.length - 1).fill(null),
+                historyPoints[historyPoints.length - 1], // 現在地点をつなぐ
+                ...futurePointsRaw
+            ];
+
+            // フィードバック更新
+            document.getElementById('prediction-feedback-main').textContent = predResult.feedback;
+            const adviceElement = document.getElementById('prediction-advice');
+            if (predResult.shortfallAmount > 0) {
+                adviceElement.textContent = `目標達成には、毎月あと ¥${Math.round(predResult.shortfallAmount).toLocaleString()} のプラスが必要です。`;
+            } else if (predResult.isAchievable) {
+                adviceElement.textContent = "順調です。このペースなら目標を達成できる見込みです。";
+            } else {
+                adviceElement.textContent = "現在の収支状況では資産が減少傾向です。固定費の見直しを推奨します。";
+            }
+
+            // チャート描画
+            const ctx = document.getElementById('predictionChart').getContext('2d');
+            if (predictionChartInstance) predictionChartInstance.destroy();
+
+            predictionChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: totalLabels,
+                    datasets: [
+                        {
+                            label: '実績 (過去6ヶ月)',
+                            data: datasetHistory,
+                            borderColor: '#3b82f6', // 実績: 青色 (実線)
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'AI予測 (今後1年)',
+                            data: datasetFuture,
+                            borderColor: '#ef4444', // 予測: 赤色 (点線)
+                            borderWidth: 3,
+                            borderDash: [6, 6], // 点線化
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#ef4444',
+                            tension: 0.4,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: true, labels: { color: '#9ca3af' } },
+                        tooltip: {
+                            backgroundColor: 'rgba(26, 35, 51, 0.95)',
+                            titleColor: '#fff',
+                            bodyColor: '#cbd5e1',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            callbacks: { label: (c) => ` ${c.dataset.label}: ¥` + Math.round(c.raw).toLocaleString() }
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }, 
+                            ticks: { 
+                                color: '#9ca3af',
+                                callback: function(value) {
+                                    if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(1) + '億円';
+                                    if (Math.abs(value) >= 10000) return (value / 10000).toFixed(0) + '万円';
+                                    return value.toLocaleString();
+                                }
+                            } 
+                        },
+                        x: { grid: { display: false }, ticks: { color: '#9ca3af', maxTicksLimit: 8 } }
+                    }
+                }
+            });
+        } catch (e) { console.error("Prediction chart error:", e); }
+    }
+
+    // FX関連
+    async function fetchFXData() {
+        try {
+            const response = await fetch('/api/fx/analysis');
+            if (!response.ok) throw new Error("API Error");
+            fxData = await response.json();
+            renderAnalysis(fxData);
+            renderFXChart(fxData);
+        } catch (error) { console.error("FX Data fetch error:", error); }
+    }
+
+    function renderAnalysis(data) {
+        document.getElementById('ai-loading').classList.add('hidden');
+        document.getElementById('ai-result').classList.remove('hidden');
+        document.getElementById('current-rate').textContent = `¥${data.currentRate.toFixed(2)}`;
+        document.getElementById('ai-reason').textContent = data.reason;
+        document.getElementById('risk-percentage').textContent = `±${data.riskPercentage.toFixed(1)}%`;
+        const badge = document.getElementById('recommendation-badge');
+        if (data.recommendation === 'BUY') {
+            badge.textContent = '買い推奨 (BUY)'; badge.className = 'inline-block rounded-full bg-accent-buy/20 text-accent-buy px-4 py-1 text-xl font-bold';
+        } else if (data.recommendation === 'SELL') {
+            badge.textContent = '売り推奨 (SELL)'; badge.className = 'inline-block rounded-full bg-accent-sell/20 text-accent-sell px-4 py-1 text-xl font-bold';
+        } else {
+            badge.textContent = '様子見 (STAY)'; badge.className = 'inline-block rounded-full bg-accent-stay/20 text-accent-stay px-4 py-1 text-xl font-bold';
+        }
+    }
+
+    function renderFXChart(data) {
+        const ctx = document.getElementById('fxChart').getContext('2d');
+        if (fxChartInstance) fxChartInstance.destroy();
+        const historyLength = data.history.length;
+        const totalLabels = Array.from({length: historyLength + data.prediction.length}, (_, i) => i < historyLength ? `${i-historyLength}日前` : `${i-historyLength+1}日後`);
+        fxChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: totalLabels,
+                datasets: [{
+                    label: 'USD/JPY レート',
+                    data: [...data.history, ...data.prediction],
+                    borderColor: (ctx) => ctx.p0DataIndex < historyLength - 1 ? '#3b82f6' : '#a855f7',
+                    segment: { borderDash: (ctx) => ctx.p0DataIndex >= historyLength - 1 ? [6, 6] : undefined },
+                    borderWidth: 2, pointRadius: 0, tension: 0.1
+                }]
+            },
+            options: { animation: { duration: 0 }, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af' } } } }
+        });
+    }
+
+    function calculateFXSimulation() {
+        if (!fxData) return;
+        const yenAmount = parseFloat(document.getElementById('invest-amount').value);
+        if (isNaN(yenAmount) || yenAmount <= 0) { alert("有効な金額を入力してください"); return; }
+        const dollars = yenAmount / fxData.currentRate;
+        const futureYen = dollars * fxData.prediction[fxData.prediction.length - 1];
+        const profit = futureYen - yenAmount;
+        document.getElementById('sim-result-amount').textContent = `¥${Math.round(futureYen).toLocaleString()}`;
+        const profitElem = document.getElementById('sim-result-profit');
+        profitElem.textContent = `${profit >= 0 ? '+' : ''}¥${Math.round(profit).toLocaleString()}`;
+        profitElem.className = `text-2xl font-bold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`;
+    }
+
+    // 編集・削除
+    function openEditModal(tx) {
+        document.getElementById('modal-title').textContent = "取引を編集";
+        document.getElementById('edit-id').value = tx.id;
+        document.getElementById('date').value = tx.date;
+        document.getElementById('amount').value = tx.amount;
+        const typeRadio = document.querySelector(`input[name="type"][value="${tx.type}"]`);
+        if(typeRadio) { typeRadio.checked = true; handleTypeChange(tx.type); }
+        setTimeout(() => {
+            document.getElementById('category').value = tx.categoryId;
+            if (tx.goalId) document.getElementById('goal-select').value = tx.goalId;
+        }, 100);
+        document.getElementById('isExtraordinary').checked = tx.isExtraordinary;
+        openModal(true);
+    }
+
+    async function deleteTransaction(id) {
+        if(!confirm("この取引を削除しますか？")) return;
+        try {
+            const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+            if(res.ok) updateDashboard();
+        } catch(e) { console.error(e); }
+    }
+
+    const modal = document.getElementById('modal');
+    function openModal(isEdit = false) {
+        if (!isEdit) {
+            document.getElementById('modal-title').textContent = "取引を追加";
+            document.getElementById('transaction-form').reset();
+            document.getElementById('edit-id').value = "";
+            document.getElementById('date').valueAsDate = new Date();
+            document.querySelector('input[name="type"][value="EXPENSE"]').checked = true;
+            handleTypeChange('EXPENSE');
+        }
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.querySelector('div').classList.add('scale-100');
+        }, 10);
+    }
+
+    function closeModal() {
+        modal.classList.add('opacity-0');
+        modal.querySelector('div').classList.remove('scale-100');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+
+    document.getElementById('transaction-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const editId = document.getElementById('edit-id').value;
+        const goalSelect = document.getElementById('goal-select');
+        const goalId = (!goalSelect.disabled && goalSelect.value) ? parseInt(goalSelect.value) : null;
+        const data = {
+            date: document.getElementById('date').value,
+            amount: document.getElementById('amount').value,
+            type: document.querySelector('input[name="type"]:checked').value,
+            categoryId: document.getElementById('category').value,
+            goalId: goalId, 
+            isExtraordinary: document.getElementById('isExtraordinary').checked
+        };
+        let url = '/api/transactions'; let method = 'POST';
+        if (editId) { url = `/api/transactions/${editId}`; method = 'PUT'; }
+        await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        closeModal();
+        updateDashboard(); updatePrediction(); loadGoals();
+    });
+
+    function handleTypeChange(type) {
+        loadCategories(type);
+        const goalSelect = document.getElementById('goal-select');
+        const goalHelp = document.getElementById('goal-help');
+        if (type === 'EXPENSE') {
+            goalSelect.value = ""; goalSelect.disabled = true; goalHelp.classList.remove('hidden');
+        } else {
+            goalSelect.disabled = false; goalHelp.classList.add('hidden');
+        }
+    }
+    
+    async function loadCategories(type) {
+        const response = await fetch('/api/categories');
+        const categories = await response.json();
+        const select = document.getElementById('category');
+        select.innerHTML = '';
+        categories.filter(c => c.type === type).forEach(c => {
+            const option = document.createElement('option');
+            option.value = c.id; option.textContent = c.name; select.appendChild(option);
+        });
+    }
+    
+    async function loadGoals() {
+        try {
+            const response = await fetch('/api/goals');
+            if (response.ok) {
+                const goals = await response.json();
+                const select = document.getElementById('goal-select');
+                select.innerHTML = '<option value="">-- 目標を選択しない --</option>'; 
+                goals.forEach(g => {
+                    const option = document.createElement('option');
+                    option.value = g.id; option.textContent = g.name; select.appendChild(option);
+                });
+            }
+        } catch (e) {}
+    }
+    
+    function logout() {
+        const form = document.createElement('form');
+        form.method = 'POST'; form.action = '/logout'; document.body.appendChild(form); form.submit();
+    }
+</script>
+</body>
+</html>
